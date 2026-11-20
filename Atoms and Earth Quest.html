@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atoms &amp; Earth Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@400;600;800&display=swap">
+<style>
+/* Layout: one game screen centred on a dusky night ground; parchment cards rise over it for questions, fights and menus. */
+:root{
+  --night:#16222b; --night-2:#1f3039; --ink:#2a2117; --parchment:#f4e7c6; --parchment-2:#e8d7ad;
+  --amber:#e9a23b; --amber-deep:#b9731c; --good:#3f9d6a; --bad:#c9483f; --ch3:#3f86c4; --ch4:#4f9a3a;
+  --muted:#7a6a52; --line:#c9b48a;
+  --display:"Pixelify Sans","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--night);color:var(--parchment);font-family:var(--body);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;box-sizing:border-box;
+  display:flex;flex-direction:column;align-items:center;gap:8px;overflow-x:hidden}
+#wrap{position:relative;width:min(100%,calc((100dvh - 70px) * 1.6),1200px);max-width:100%}
+#game{display:block;width:100%;aspect-ratio:960/600;height:auto;border-radius:10px;background:var(--night-2);box-shadow:0 10px 40px rgba(0,0,0,.45);touch-action:none;image-rendering:auto}
+.bar{width:min(100%,calc((100dvh - 70px) * 1.6),1200px);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:.85rem;color:#b9c6c9}
+.bar b{font-family:var(--display);color:var(--amber);font-size:1.05rem;letter-spacing:.04em;font-weight:700}
+.bar .keys{display:flex;gap:10px;flex-wrap:wrap}
+kbd{font-family:var(--body);background:var(--night-2);border:1px solid #3c525c;border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:.8em;color:var(--parchment)}
+.iconbtn{background:transparent;border:1px solid #3c525c;color:var(--parchment);border-radius:6px;padding:3px 9px;font:inherit;cursor:pointer}
+.iconbtn:hover{border-color:var(--amber)}
+
+/* overlays */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));background:rgba(10,16,20,.62);z-index:20;overflow:auto}
+.overlay.top{z-index:30}
+.card{background:var(--parchment);color:var(--ink);border-radius:14px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink),0 20px 50px rgba(0,0,0,.5);width:min(680px,100%);max-height:100%;overflow:auto;padding:22px 24px;box-sizing:border-box;margin:auto}
+.card.wide{width:min(860px,100%)}
+.card h1,.card h2{font-family:var(--display);margin:0 0 6px;line-height:1.1;text-wrap:balance;color:var(--ink)}
+.card h1{font-size:clamp(1.9rem,5vw,2.8rem);letter-spacing:.02em}
+.card h2{font-size:clamp(1.3rem,3.5vw,1.7rem)}
+.card p{margin:.4em 0;line-height:1.5}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--display);font-size:1.15rem;background:var(--amber);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:9px 18px;cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .06s}
+.btn:hover{background:#f2b350}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.opt:focus-visible,.seg input:focus-visible+span,.iconbtn:focus-visible{outline:3px solid var(--ch3);outline-offset:2px}
+.btn.ghost{background:var(--parchment-2)}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{cursor:pointer}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:inline-block;padding:6px 12px;border:2px solid var(--ink);border-radius:8px;background:var(--parchment-2);font-weight:700;font-size:.92rem}
+.seg input:checked+span{background:var(--ink);color:var(--parchment)}
+.field{display:grid;gap:6px;margin:12px 0}
+.field>.lbl{font-weight:800;font-size:.9rem}
+input[type=text]{font:inherit;padding:7px 10px;border:2px solid var(--ink);border-radius:8px;background:#fffaf0;color:var(--ink);width:min(320px,100%);box-sizing:border-box}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0}
+.how div{background:var(--parchment-2);border-radius:10px;padding:10px 12px;font-size:.9rem;line-height:1.4}
+.how b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
+.badge{display:inline-block;font-weight:800;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 10px}
+.badge.c3{background:var(--ch3)} .badge.c4{background:var(--ch4)}
+.stars{color:var(--amber-deep);font-size:.9rem;letter-spacing:2px}
+.qtext{font-size:clamp(1.1rem,2.6vw,1.35rem);font-weight:800;line-height:1.35;margin:10px 0 14px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;font-size:1.02rem;font-weight:600;background:#fffaf0;color:var(--ink);border:2px solid var(--ink);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:hover:not(:disabled){background:#fff1cf}
+.opt .k{flex:none;width:26px;height:26px;border-radius:6px;background:var(--ink);color:var(--parchment);display:grid;place-items:center;font-family:var(--display);font-size:1rem}
+.opt.right{background:#d4efd9;border-color:var(--good)} .opt.right .k{background:var(--good)}
+.opt.wrong{background:#f6d2cd;border-color:var(--bad)} .opt.wrong .k{background:var(--bad)}
+.opt:disabled{cursor:default}
+.feedback{margin-top:14px;padding:12px 14px;border-radius:10px;border:2px solid var(--ink);line-height:1.45}
+.feedback.ok{background:#d4efd9} .feedback.no{background:#f6d2cd}
+.feedback b{font-family:var(--display);font-size:1.15rem;font-weight:700}
+.stake{font-size:.92rem;color:var(--muted);font-weight:600}
+#fightCanvas{display:block;width:100%;aspect-ratio:640/280;height:auto;border-radius:10px;border:3px solid var(--ink);background:#223}
+.fightlog{min-height:2.8em;font-weight:700;margin:10px 0;line-height:1.4}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:12px 0}
+.stats div{background:var(--parchment-2);border-radius:10px;padding:8px 12px}
+.stats .v{font-family:var(--display);font-size:1.6rem;display:block;font-variant-numeric:tabular-nums}
+.stats .l{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--muted)}
+.review{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.review li{background:#fffaf0;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.92rem;line-height:1.4}
+.review .ans{color:var(--good);font-weight:800}
+textarea{width:100%;box-sizing:border-box;min-height:300px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.45;border:2px solid var(--ink);border-radius:8px;padding:10px;background:#fffaf0;color:var(--ink);white-space:pre;overflow:auto}
+.note{font-size:.88rem;color:var(--muted)}
+.err{color:var(--bad);font-weight:700;font-size:.9rem;white-space:pre-wrap}
+code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9em}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <b>Atoms &amp; Earth Quest</b>
+  <span class="keys"><span><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> move</span><span><kbd>1</kbd>–<kbd>4</kbd> answer</span><span><kbd>Space</kbd> strike in fights</span><span><kbd>P</kbd> pause</span>
+  <button class="iconbtn" id="muteBtn" type="button">Sound: on</button></span>
+</div>
+<div id="wrap"><canvas id="game" width="960" height="600" aria-label="Game world"></canvas></div>
+
+<!-- MENU -->
+<div class="overlay" id="menu">
+  <div class="card wide">
+    <div class="eyebrow">Year 9 Science · Chapters 3 &amp; 4</div>
+    <h1>Atoms &amp; Earth Quest</h1>
+    <p>Cross three wild lands and face the Ember Dragon. Collect three Knowledge Scrolls in each land to open its gate. If a creature catches you, answer its question correctly and it runs away. Answer wrongly and you'll have to fight it.</p>
+    <div class="how">
+      <div><b>Caught by a creature?</b>Right answer: it flees. Wrong answer: it strikes first and you fight.</div>
+      <div><b>Fighting</b>Move in with <kbd>→</kbd>, strike with <kbd>Space</kbd>, and step back with <kbd>←</kbd> when the enemy winds up to attack.</div>
+      <div><b>Supplies</b>Answer the question to use the item. Most heal you, but some are secretly poisoned. Answer wrongly and you leave it behind.</div>
+      <div><b>Knowledge Scrolls</b>Harder questions. Get one wrong and the wind blows the scroll somewhere else.</div>
+    </div>
+    <div class="field"><span class="lbl">Your name (shown on the results screen)</span><input type="text" id="pname" maxlength="30" placeholder="e.g. Alex" autocomplete="off"></div>
+    <div class="field"><span class="lbl">Questions from</span>
+      <div class="seg" id="chSeg">
+        <label><input type="radio" name="ch" value="both" id="chBoth" checked><span>Chapters 3 + 4</span></label>
+        <label><input type="radio" name="ch" value="3" id="ch3"><span>Chapter 3: Materials</span></label>
+        <label><input type="radio" name="ch" value="4" id="ch4"><span>Chapter 4: Sustainability</span></label>
+      </div></div>
+    <div class="field"><span class="lbl">Difficulty</span>
+      <div class="seg" id="dSeg">
+        <label><input type="radio" name="diff" value="0" id="d0"><span>Explorer (gentle)</span></label>
+        <label><input type="radio" name="diff" value="1" id="d1" checked><span>Adventurer</span></label>
+        <label><input type="radio" name="diff" value="2" id="d2"><span>Legend (tough)</span></label>
+        <label><input type="radio" name="diff" value="3" id="d3"><span>Nightmare (brutal)</span></label>
+      </div></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="startBtn" type="button">Start adventure</button>
+      <button class="btn ghost" id="bankBtn" type="button">Question bank (teachers)</button>
+    </div>
+    <p class="note" id="bankInfo" style="margin-top:12px"></p>
+  </div>
+</div>
+
+<!-- LEVEL CARD -->
+<div class="overlay" id="levelCard" hidden>
+  <div class="card">
+    <div class="eyebrow" id="lvEyebrow">Land 1 of 4</div>
+    <h2 id="lvName">Whispering Woods</h2>
+    <p id="lvBlurb"></p>
+    <p class="stake" id="lvGoal"></p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="lvGo" type="button">Let's go (Enter)</button></div>
+  </div>
+</div>
+
+<!-- QUESTION -->
+<div class="overlay top" id="qBox" hidden>
+  <div class="card" role="dialog" aria-labelledby="qTitle">
+    <div class="row" style="justify-content:space-between"><span class="eyebrow" id="qTitle">Caught!</span><span><span class="badge" id="qBadge">Ch 3</span> <span class="stars" id="qStars"></span></span></div>
+    <p class="stake" id="qStake"></p>
+    <div class="qtext" id="qText"></div>
+    <div class="opts" id="qOpts"></div>
+    <div id="qFeedback" hidden></div>
+    <div class="row" style="margin-top:12px" id="qContRow" hidden><button class="btn" id="qCont" type="button">Continue (Enter)</button></div>
+  </div>
+</div>
+
+<!-- FIGHT -->
+<div class="overlay" id="fightBox" hidden>
+  <div class="card wide">
+    <div class="eyebrow" id="fTitle">Fight!</div>
+    <canvas id="fightCanvas" width="640" height="280"></canvas>
+    <div class="fightlog" id="fLog" aria-live="polite"></div>
+    <div class="row"><span class="row" id="fControls"><button class="btn ghost" id="backBtn" type="button" aria-label="Step back">◀ Back</button><button class="btn" id="strikeBtn" type="button">Strike! (Space)</button><button class="btn ghost" id="fwdBtn" type="button" aria-label="Move in">Move in ▶</button></span><button class="btn" id="fCont" type="button" hidden>Continue (Enter)</button></div>
+    <p class="note" style="margin:8px 0 0">Use <kbd>←</kbd> <kbd>→</kbd> (or <kbd>A</kbd> <kbd>D</kbd>) to move in and out. When an enemy shows a red <b>!</b> it is about to attack: step back to dodge, or hit it first for double damage.</p>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div class="overlay" id="pauseBox" hidden>
+  <div class="card">
+    <h2>Paused</h2>
+    <p>Take a breath. Your progress is safe while the game is paused.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="resumeBtn" type="button">Resume (P)</button><button class="btn ghost" id="quitBtn" type="button">End game and see results</button></div>
+  </div>
+</div>
+
+<!-- END -->
+<div class="overlay" id="endBox" hidden>
+  <div class="card wide">
+    <div class="eyebrow" id="eEyebrow">Results</div>
+    <h1 id="eTitle">Quest complete!</h1>
+    <p id="eSub"></p>
+    <div class="stats" id="eStats"></div>
+    <div id="eReviewWrap"><h2 style="margin-top:14px">Questions to review</h2><ul class="review" id="eReview"></ul></div>
+    <div class="row" style="margin-top:16px"><button class="btn" id="againBtn" type="button">Play again</button></div>
+  </div>
+</div>
+
+<!-- BANK EDITOR -->
+<div class="overlay top" id="bankBox" hidden>
+  <div class="card wide">
+    <div class="eyebrow">For teachers</div>
+    <h2>Question bank</h2>
+    <p class="note">One question per line, in this order, separated by <code>|</code>:<br><code>chapter | difficulty 1–4 | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation</code><br>The correct answer always goes first; the game shuffles the options. Lines starting with <code>#</code> are ignored. Saved changes stay in this browser only. To change the bank for everyone, edit the <code>DEFAULT_BANK</code> section near the top of the game's script.</p>
+    <textarea id="bankText" spellcheck="false" aria-label="Question bank"></textarea>
+    <div class="err" id="bankErr"></div>
+    <p class="note" id="bankStatus"></p>
+    <div class="row"><button class="btn" id="bankSave" type="button">Save and use</button><button class="btn ghost" id="bankReset" type="button">Restore original questions</button><button class="btn ghost" id="bankClose" type="button">Close</button></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   QUESTION BANK
+   One question per line:
+   chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation
+   ========================================================================== */
+const DEFAULT_BANK = `# chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | one-line explanation
+3|1|Which particle in an atom carries a negative charge?|Electron|Proton|Neutron|Nucleus|Electrons are negative, protons are positive and neutrons have no charge.
+3|1|The atomic number of an element tells you its number of…|Protons|Neutrons|Electron shells|Protons plus neutrons|Atomic number = number of protons, which equals the number of electrons in a neutral atom.
+3|1|Where are an atom's valence electrons?|In the outer shell|In the nucleus|Only in the first shell|Shared between two nuclei|Valence electrons are the electrons in the outermost shell.
+3|1|Which group of the periodic table holds the noble gases?|Group 18|Group 1|Group 2|Group 17|The noble gases (He, Ne, Ar and so on) are in group 18, the far-right column.
+3|1|Metal atoms usually form ions by…|Losing electrons|Gaining electrons|Gaining protons|Losing neutrons|Metals have only a few valence electrons, so it is easier to lose them and form positive ions.
+3|1|An atom that GAINS electrons becomes…|A negative ion (anion)|A positive ion (cation)|A noble gas|A neutral molecule|Electrons are negative, so gaining extra ones gives an overall negative charge.
+3|1|A covalent bond forms when two non-metal atoms…|Share a pair of electrons|Transfer electrons completely|Lose all their electrons|Swap protons|A covalent bond is a pair of electrons shared between two non-metal atoms.
+3|1|Ionic bonds usually form between…|A metal and a non-metal|Two non-metals|Two metals|Two noble gases|The metal gives electrons to the non-metal, making oppositely charged ions that attract.
+3|1|In an electron dot diagram, the dots stand for…|Valence electrons|All of the atom's electrons|Protons|Neutrons|Dot diagrams only show the outer (valence) electrons around the element's symbol.
+3|1|How many electrons fit in the first electron shell?|2|8|18|4|The first shell holds 2 electrons; for the first 20 elements the next shells hold 8.
+3|1|Which element would be LEAST likely to react with sodium?|Helium|Chlorine|Oxygen|Fluorine|Helium is a noble gas with a full outer shell, so it does not need to gain, lose or share electrons.
+3|1|What is the charge on ions of group 1 metals such as lithium and sodium?|1+|1−|2+|0|Group 1 atoms have 1 valence electron and lose it, forming a 1+ ion.
+3|2|What is the electron configuration of oxygen (8 electrons)?|2,6|2,8|6,2|2,4,2|The first shell takes 2 electrons and the remaining 6 go into the second shell.
+3|2|What is the electron configuration of chlorine (17 electrons)?|2,8,7|2,7,8|2,8,8|8,8,1|Fill the shells in order: 2 + 8 + 7 = 17.
+3|2|An atom has the configuration 2,8,3. Which element is it?|Aluminium|Silicon|Phosphorus|Sodium|2 + 8 + 3 = 13 electrons, and element 13 is aluminium.
+3|2|Phosphorus has the configuration 2,8,5. How many valence electrons does it have?|5|15|3|8|The last number in a configuration is the outer shell, so phosphorus has 5 valence electrons.
+3|2|What is the valency of oxygen?|2|6|8|1|Oxygen has 6 valence electrons, so it needs to gain 2 more to fill its outer shell.
+3|2|Aluminium (2,8,3) forms an ion with which charge?|3+|3−|5−|1+|Losing 3 outer electrons is easier than gaining 5, so aluminium forms Al³⁺.
+3|2|A chlorine atom gains one electron. Which ion forms?|Cl⁻|Cl⁺|Cl²⁻|Cl₂|One extra electron gives a 1− charge: the chloride ion, Cl⁻.
+3|2|What is the formula of sodium oxide?|Na₂O|NaO|NaO₂|Na₂O₂|Na⁺ is 1+ and O²⁻ is 2−, so two Na⁺ ions balance one O²⁻ ion.
+3|2|What is the name of the compound KCl?|Potassium chloride|Potassium chlorine|Krypton chloride|Potassium chlorate|Name the metal first, then change the non-metal's ending to "-ide".
+3|2|What is the formula of aluminium fluoride?|AlF₃|AlF|Al₃F|AlF₂|Al³⁺ needs three F⁻ ions to balance its charge.
+3|2|Which of these is held together by metallic bonding?|Aluminium foil|Sugar|Oxygen gas|Magnesium oxide|Aluminium is a pure metal. Sugar and oxygen are covalent, and magnesium oxide is ionic.
+3|2|How many electrons are shared in the single covalent bond in hydrogen fluoride, HF?|2 (one pair)|1|4 (two pairs)|0|A single covalent bond is one shared pair, which is 2 electrons.
+3|2|Which pair of elements would form an ionic compound?|Potassium and oxygen|Carbon and oxygen|Nitrogen and hydrogen|Two chlorine atoms|Potassium is a metal and oxygen is a non-metal, so electrons are transferred.
+3|2|An atom has atomic number 11 and mass number 23. How many neutrons does it have?|12|11|23|34|Neutrons = mass number − atomic number = 23 − 11 = 12.
+3|2|Which list contains ONLY diatomic elements?|H₂, N₂, O₂, Cl₂|He, Ne, Ar, Kr|Na, K, Li, Ca|H₂O, CO₂, NH₃, CH₄|These elements exist as two-atom molecules. The last list is compounds, not elements.
+3|2|Why do ionic compounds such as table salt have high melting points?|Strong attractions hold the ions together in a lattice|Their shared electrons are weakly held|They are made of noble gases|They contain no charged particles|It takes a lot of energy to pull apart oppositely charged ions in a lattice.
+3|2|Elements in the same group of the periodic table have the same number of…|Valence electrons|Neutrons|Protons|Atoms in a molecule|Elements in a group have the same outer-shell electron count, so they react in similar ways.
+3|3|Why does an oxygen molecule (O₂) contain a double bond?|Each O atom needs 2 more electrons, so they share two pairs|Each O atom has only 2 valence electrons|One O atom gives 2 electrons to the other|Oxygen is a noble gas|With 6 valence electrons each, sharing two pairs gives both atoms a full outer shell of 8.
+3|3|Why can metals conduct electricity?|Their delocalised electrons are free to move|Their ions are fixed in place|Their electrons are shared in fixed pairs|Their nuclei move through the metal|The "sea" of delocalised electrons can flow through the metal, carrying charge.
+3|3|Solid salt does not conduct electricity, but molten (melted) salt does. Why?|Melting lets the ions move freely|Melting creates new electrons|Melting breaks covalent bonds|Melting frees the protons|Charge is carried by moving ions; in a solid lattice the ions are locked in place.
+3|3|What is the formula of aluminium oxide?|Al₂O₃|AlO|Al₃O₂|AlO₃|Two Al³⁺ ions give +6 and three O²⁻ ions give −6, so the charges balance.
+3|3|Phosphorus has 5 valence electrons. How many single bonds does it make with chlorine in PCl₃?|3|5|1|8|Phosphorus needs 3 more electrons, so it shares 3 pairs, one with each Cl atom.
+3|3|How many electrons does an aluminium ion, Al³⁺, have?|10|13|16|3|Aluminium has 13 electrons and loses 3, leaving 10 (2,8).
+3|3|Which ion has the same electron configuration as neon (2,8)?|Na⁺|K⁺|Cl⁻|Ca²⁺|Sodium (2,8,1) loses one electron to become 2,8, the same as neon.
+3|3|In carbon tetrachloride (CCl₄), how many shared electron pairs are there altogether?|4|8|2|1|Carbon makes 4 single bonds, one with each chlorine atom, so there are 4 shared pairs.
+3|3|What is the formula of potassium sulfide?|K₂S|KS|KS₂|K₂S₂|K⁺ is 1+ and S²⁻ is 2−, so two K⁺ ions are needed for every S²⁻ ion.
+3|3|Element X is in group 2 and element Y is in group 17. What is the formula of the compound they form?|XY₂|X₂Y|XY|X₂Y₇|X forms X²⁺ and Y forms Y⁻, so two Y⁻ ions balance one X²⁺ ion.
+3|3|What happens when a magnesium atom becomes a magnesium ion?|It loses 2 electrons and keeps its 12 protons|It gains 2 protons|It gains 6 electrons|It loses 2 protons|Only electrons move when ions form. The number of protons never changes.
+3|3|Copper wire can be bent without snapping. What explains this?|Layers of metal ions slide while the electron sea holds them together|Copper atoms share fixed electron pairs|Copper is made of separate small molecules|Copper ions strongly repel each other|In metallic bonding the electrons are not fixed, so layers of ions can move without breaking apart.
+4|1|Which of these is NOT one of the three aims of sustainability?|Making as much profit from resources as possible today|Using Earth's resources responsibly|Protecting the environment|Keeping a good quality of life now and in the future|The three aims are responsible resource use, protecting the environment, and quality of life now and in the future.
+4|1|How many Sustainable Development Goals did the United Nations adopt in 2015?|17|10|5|30|The UN adopted 17 SDGs to guide action for people and the planet by 2030.
+4|1|Which of these is a non-renewable resource?|Coal|Wind|Sunlight|Plantation timber|Coal takes millions of years to form, so it cannot be replaced within a human lifetime.
+4|1|Bees pollinating farm crops is an example of…|An ecosystem service|An invasive species|Overharvesting|A climate zone|Ecosystem services are the benefits people get from nature, such as pollination.
+4|1|Which of these is a cause of falling biodiversity?|Invasive species such as cane toads|Habitat restoration|Wildlife corridors|Seed banks|Invasive species compete with or prey on native species. The others help biodiversity.
+4|2|A circular economy aims to…|Keep materials in use and cut waste|Use each product once, then throw it away|Burn all waste for energy|Ship waste overseas|In a circular economy products are reused, repaired and recycled, so less becomes waste.
+4|2|Which of these is a CULTURAL ecosystem service?|Bushwalking in a national park|Drinking water from a catchment|Insects pollinating crops|Mangroves reducing coastal erosion|Cultural services give recreation, wellbeing and meaning. The others are provisioning or regulating services.
+4|2|Why are more biodiverse ecosystems more stable?|If one species is lost, others can fill its role|They contain fewer food webs|They have only one type of plant|They never change|With many interconnected species, an ecosystem can better resist and recover from change.
+4|1|Traditionally, Aboriginal and Torres Strait Islander knowledge about caring for Country was passed on through…|Story, song and dance|Printed textbooks|Government laws|Online videos|Knowledge of ecology, weather and seasons was taught through story, song and dance.
+4|1|First Nations communities in Australia are…|The oldest continuous cultures in the world|Less than 1000 years old|Recent arrivals from Europe|Only found in cities|Connection to Country has supported the oldest continuous cultures on Earth.
+4|2|In many First Nations cultures, "Country" means…|Everything in the human and more-than-human world, cared for like family|A nation with fixed borders|Land that one person owns|Only the trees in an area|Country includes land, water, sky, plants, animals and people, and is respected rather than owned.
+4|2|Why were cultural burns lit at carefully chosen times?|To reduce undergrowth so big bushfires were less likely|To clear land for buildings|To warm the air in winter|To drive every animal away for good|Well-timed fires reduced fuel, guided by knowledge of the seasonal winds.
+4|3|How does a common Western view of land differ from caring for Country?|Western views often see land as owned and controlled; caring for Country sees people as belonging to Country|They are exactly the same|Caring for Country treats land as something to exploit|Western views say that Country cares for people|For First Nations peoples, people and Country belong to each other, which is different from owning land.
+4|3|Aboriginal peoples thrived through the last Ice Age. About when was it?|16 000–25 000 years ago|200 years ago|2000 years ago|1 million years ago|Knowledge of ecology and food webs helped people thrive through the Ice Age about 16 000–25 000 years ago.
+4|1|Climate is the average weather of a place measured over at least…|30 years|1 year|1 month|5 years|Climate describes long-term patterns averaged over 30 years or more.
+4|2|Which statement describes CLIMATE rather than weather?|Darwin has a wet summer and a dry winter|It is raining in Sydney right now|Tomorrow will be windy|A hailstorm hit this afternoon|Climate is the long-term pattern. The others describe short-term weather.
+4|2|The Köppen system classifies climate zones using…|Temperature and rainfall|Wind and air pressure|Altitude and soil type|Population and pollution|Köppen sorts climates by their temperature and rainfall patterns.
+4|2|By about how much has Australia warmed since 1910?|About 1 °C|About 10 °C|About 0.01 °C|About 5 °C|Australia has warmed by roughly 1 °C, with more extreme heat and longer fire seasons.
+4|2|Which of these is a sign of Australia's changing climate?|Longer bushfire seasons|Fewer heatwaves|Cyclones only forming near the equator|Shorter droughts|Warming has brought longer fire seasons, more heatwaves and longer droughts.
+4|1|In which layer of the atmosphere does weather happen?|Troposphere|Stratosphere|Mesosphere|Thermosphere|The troposphere is the lowest layer, where we live, planes fly and weather forms.
+4|2|The ozone layer is found in the…|Stratosphere|Troposphere|Thermosphere|Mesosphere|The ozone layer is in the stratosphere and absorbs harmful UV radiation.
+4|3|In which layer of the atmosphere do most meteors burn up?|Mesosphere|Troposphere|Stratosphere|Thermosphere|Meteors burn up in the mesosphere. Auroras happen in the thermosphere.
+4|1|Which of these is a greenhouse gas?|Methane|Nitrogen|Oxygen|Argon|Methane, carbon dioxide, water vapour and nitrous oxide are greenhouse gases.
+4|2|Greenhouse gases absorb and re-emit which type of radiation given off by Earth's warm surface?|Infrared|X-rays|Radio waves|Gamma rays|The warm surface gives off infrared (heat) radiation, which greenhouse gases absorb and re-emit.
+4|3|What is the correct chemical formula for nitrous oxide?|N₂O|NO₂|NO|N₂O₄|Nitrous oxide is N₂O: two nitrogen atoms and one oxygen atom. NO₂ is a different gas.
+4|3|Which greenhouse gas stays in the atmosphere for only a few days?|Water vapour|Nitrous oxide|Carbon dioxide|Methane|Water vapour cycles out within days, while nitrous oxide can last over 100 years.
+4|2|Venus's atmosphere is about 96% carbon dioxide. What would you predict about its surface?|It is extremely hot|It is frozen solid|It is the same temperature as Earth|It has no greenhouse effect|More greenhouse gas traps more infrared radiation, so Venus is far hotter than Earth.
+4|1|What is the main cause of the enhanced greenhouse effect?|Burning fossil fuels|Volcanic eruptions|Sunspots|The ozone hole|Since the Industrial Revolution, burning coal, oil and gas has raised greenhouse gas levels.
+4|1|Who began measuring carbon dioxide at Mauna Loa in Hawaii in 1958?|Charles Keeling|Charles Darwin|Marie Curie|Isaac Newton|Keeling's measurements make up the famous Keeling curve.
+4|2|Why does the Keeling curve wobble up and down each year?|Northern Hemisphere plants take in CO₂ in spring and summer|Ocean tides change every month|A volcano erupts every winter|Factories close every summer|Most land and plants are in the Northern Hemisphere, so CO₂ dips during its growing season.
+4|1|How do ice cores tell us about the past atmosphere?|They hold trapped air bubbles from long ago|They show future rainfall|They measure the Sun's temperature|They record the Moon's age|Air bubbles sealed in old ice record past gas concentrations.
+4|3|Ice cores show that over the last 400 000 years, natural CO₂ levels stayed between about…|180 and 300 ppm|400 and 500 ppm|0 and 50 ppm|1000 and 2000 ppm|Today's level of over 420 ppm is far above that natural range.
+4|2|Where is the Kennaook/Cape Grim greenhouse gas station?|North-west Tasmania|Antarctica|Hawaii|Central Australia|Cape Grim measures very clean air that arrives over the Southern Ocean.
+4|2|What is Australia's biggest source of greenhouse gas emissions?|Electricity generation|Transport|Waste|Tourism|Much of Australia's electricity still comes from burning coal and gas.
+4|1|What is Australia's emissions target for 2050?|Net zero|43% higher than 2005|No target|10% lower than 2005|Australia aims for 43% below 2005 levels by 2030 and net zero by 2050.
+4|2|In what year was the Paris Agreement signed?|2015|1997|2008|2023|The Paris Agreement (2015) came after the Kyoto Protocol (1997).
+4|2|What helps renewable electricity supply power when the Sun isn't shining?|Batteries and pumped hydro|Coal stockpiles|Longer power poles|Gas pipelines|Storage such as batteries and pumped hydro holds renewable energy for later.
+4|2|Changing what livestock eat can reduce emissions of which gas?|Methane|Oxygen|Nitrogen|Ozone|Cattle and sheep release methane as they digest food, and some feeds reduce it.
+4|1|Which action at home reduces greenhouse gas emissions?|Switching appliances off at the wall|Leaving lights on overnight|Using a gas heater more often|Running a half-empty dishwasher|Using less electricity means less fuel is burnt in power stations.
+4|3|What is one of the biggest challenges to cutting emissions in Australia?|Fossil fuels are still cheap and Australia earns money selling them|Sunlight is running out|Wind turbines give off CO₂ as they spin|Australia has no renewable energy sources|The main barriers are economic: cheap fossil fuels and income from mining.
+4|2|A heatwave is…|Three or more days of unusually high temperatures for a region|Any day above 30 °C|One hot afternoon|A week without rain|What counts as a heatwave depends on what is unusually hot for that place.
+4|2|Why does sea level rise when ocean water warms?|Warmer water molecules move faster and spread apart, so the water expands|Water molecules grow bigger|More salt dissolves in the water|Warm water turns into ice|This is thermal expansion, which causes at least half of recent sea-level rise.
+4|3|Why does melting Arctic sea ice speed up warming?|Dark ocean water absorbs more sunlight than white ice|Melting ice releases carbon dioxide|Meltwater is hotter than seawater|Ice reflects heat down into the ocean|White ice reflects sunlight. Once it melts, the darker water absorbs more energy and warms.
+4|3|By about how much did sea levels rise over the last century?|0.10–0.20 m|2–3 m|1 mm|10 m|Sea level rose 10–20 cm, mostly from thermal expansion and melting glaciers.
+4|2|Warmer oceans lead to…|More evaporation, cloud and heavy rain|Less evaporation and fewer clouds|No storms at all|Colder air above the sea|More water evaporates from warm oceans, feeding bigger storms and rain events.
+4|2|Which was NSW's worst bushfire season on record?|2019–20|1990–91|2009–10|2023–24|The 2019–20 "Black Summer" was the worst fire season on record for NSW.
+4|1|What causes ocean acidification?|Oceans absorbing extra carbon dioxide|Plastic in the sea|Oil spills|Warm rain|Dissolved CO₂ forms carbonic acid, which lowers the ocean's pH.
+4|3|What is the chemical formula of carbonic acid?|H₂CO₃|HCO₃|CO₃²⁻|H₂O₂|CO₂ + H₂O forms H₂CO₃, which releases H⁺ ions and lowers pH.
+4|2|Which living things are harmed most directly by ocean acidification?|Corals and shellfish that build calcium carbonate shells|Whales, because they breathe air|Seabirds, because they fly|Seagrass, because it needs less light|Less carbonate in seawater makes shells and skeletons thinner and weaker.
+4|1|What is the biggest threat to polar bears?|Habitat loss as sea ice shrinks|Overfishing of salmon|Noise from ships|Sunburn|Polar bears hunt seals from sea ice, so less ice means less food.
+4|2|How fast is the Arctic warming compared with the rest of the world?|Almost twice as fast|Half as fast|At the same rate|It is cooling down|Faster warming is shrinking the sea ice that Arctic animals depend on.
+4|3|Why is less snow a problem for the mountain pygmy possum?|Snow insulates its boulder-field home, so without it possums can freeze|Snow is its main food|It needs snow to drink|More snow brings predators|Changing snowfall and earlier melts are shrinking the possum's habitat.
+4|2|Most of Tuvalu's islands are about how high above sea level?|3 m|30 m|300 m|3 km|Being so low-lying makes Tuvalu very exposed to rising seas and storm waves.
+4|2|Why do many people in Tuvalu now rely on rainwater for drinking?|Seawater has got into the groundwater|There are no clouds over Tuvalu|Their rivers are frozen|Rainwater is cheaper than bottled water|Rising seas push salt water into underground freshwater supplies.
+4|3|If emissions continue at current rates, the Australian ski season could fall from about 110 days to about…|55 days by 2050|100 days by 2050|10 days by 2030|200 days by 2050|Models predict the season could halve by 2050 under a high-emissions scenario.
+4|3|Less alpine snow is also a problem for water supply because snowmelt feeds…|The Murray–Darling Basin|The Great Barrier Reef|Sydney Harbour|Only Lake Eyre|Winter snowfall supplies about 29% of the water entering the Murray–Darling Basin.
+4|2|What do climate models show happens under a LOW-emissions scenario?|Impacts are smaller and some ecosystems can recover|Impacts are worse than under a high scenario|Nothing changes at all|Sea levels fall back to 1900 levels|Cutting emissions quickly reduces future damage to alpine areas and Pacific nations.
+# ★★★★ challenge questions (used on Legend and Nightmare)
+3|4|Element X has the configuration 2,8,2 and element Y has 2,8,5. What is the formula of the compound they form?|X₃Y₂|XY|X₂Y₃|X₅Y₂|X loses 2 electrons (X²⁺) and Y gains 3 (Y³⁻). Three X²⁺ (+6) balance two Y³⁻ (−6).
+3|4|An ion has 18 electrons and a 2− charge. Which element is it an ion of?|Sulfur|Argon|Calcium|Chlorine|A 2− ion has 2 extra electrons, so the atom has 18 − 2 = 16 electrons and 16 protons: sulfur.
+3|4|A particle has 12 protons and 10 electrons. What is it?|A magnesium ion, Mg²⁺|A neon atom|A sodium ion, Na⁺|An oxide ion, O²⁻|12 protons means magnesium; 2 fewer electrons than protons gives a 2+ charge.
+3|4|A nitrogen molecule (N₂) has a triple bond. How many electrons are shared between the two atoms in total?|6|3|2|8|A triple bond is three shared pairs, and 3 × 2 = 6 electrons.
+3|4|Which of these substances would have the highest melting point?|Calcium oxide|Oxygen|Bromine|Nitrogen|Calcium oxide is ionic, with strongly attracting 2+ and 2− ions in a lattice. The others are small covalent molecules.
+3|4|In phosphine (PH₃), phosphorus makes 3 single bonds. How many lone (non-bonding) pairs of electrons does phosphorus have?|1|0|2|3|Phosphorus has 5 valence electrons: 3 are used in bonds and the other 2 form one lone pair.
+3|4|Which particle has the same number of electrons as an argon atom?|K⁺|Na⁺|Ne|F⁻|Potassium (19 electrons) loses one to become K⁺ with 18 electrons, the same as argon.
+3|4|Which compound has a formula of the type XY₃?|Aluminium chloride|Magnesium oxide|Sodium sulfide|Potassium bromide|Al³⁺ needs three Cl⁻ ions, giving AlCl₃.
+4|4|CO₂ rose from about 320 ppm in the mid-1960s to about 420 ppm in the mid-2020s. What was the average rise per year?|About 1.7 ppm|About 17 ppm|About 0.17 ppm|About 100 ppm|A 100 ppm rise over about 60 years is 100 ÷ 60 ≈ 1.7 ppm per year.
+4|4|If Tuvalu's sea level rises by 5 mm each year, about how much will it rise in 40 years?|20 cm|2 cm|2 m|45 mm|5 mm × 40 = 200 mm, which is 20 cm.
+4|4|The global average sea-level rise is about 1.8 mm per year, but Tuvalu's is over 5 mm per year. What is the best explanation?|Sea-level rise varies by region because winds and currents vary|Tuvalu's measurements must be wrong|The global ocean is not really rising|Tuvalu is sinking because its ice is melting|Water is not spread evenly; winds and currents pile more water up in some regions.
+4|4|A student says ocean acidification means the ocean has become an acid with a pH below 7. What is the best response?|The pH is falling, but seawater is still slightly basic|That is correct; the ocean now has a pH of about 3|Acidification means the pH is rising|Acidification has nothing to do with CO₂|"Acidification" means moving towards acidic: ocean pH is dropping from about 8.2, not below 7.
+4|4|If the ski season shrinks from about 110 days to about 55 days, what is the percentage decrease?|50%|55%|25%|110%|The season loses 55 of its 110 days: 55 ÷ 110 = 0.5, a 50% decrease.
+4|4|Why are ice core records often shown on the same graph as the Mauna Loa record?|Both measure CO₂, so they join into one long record of past and present levels|Ice cores only measure temperature|Mauna Loa is in Antarctica|Ice cores predict future CO₂ levels|Ice cores cover hundreds of thousands of years and Mauna Loa covers recent decades, so together they show the long-term change.
+4|4|Which evidence BEST supports the claim that recent warming is linked to human CO₂ emissions?|CO₂ has risen far above its 400 000-year natural range since the Industrial Revolution, as temperatures have risen|Last summer was very hot|Some years are cooler than others|Volcanoes release CO₂|Strong evidence uses long-term data that links the timing of rising CO₂ to rising temperatures, not one season.
+4|4|Arctic summer sea ice is shrinking by about 13% per decade. Roughly how much would be lost after four decades at that rate?|A little under half|About 13%|About 4%|It would double|Each decade keeps 87% of what was left: 0.87 × 0.87 × 0.87 × 0.87 ≈ 0.57, so about 43% is lost.`;
+
+/* ========================================================================== */
+(function(){
+"use strict";
+const TAU=Math.PI*2, W=960, H=600, TS=32;
+const $=id=>document.getElementById(id);
+const cv=$('game'), cx=cv.getContext('2d');
+const fcv=$('fightCanvas'), fx=fcv.getContext('2d');
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+
+/* ---------------- question bank ---------------- */
+const BANK_KEY='aeq-bank-v1';
+function parseBank(text){
+  const qs=[], errs=[];
+  text.split(/\r?\n/).forEach((line,i)=>{
+    const t=line.trim(); if(!t||t.startsWith('#')) return;
+    const p=t.split('|').map(s=>s.trim());
+    if(p.length<6){errs.push(`Line ${i+1}: needs at least chapter | difficulty | question | correct | one wrong answer | explanation`);return;}
+    const ch=parseInt(p[0],10), d=parseInt(p[1],10);
+    if(ch!==3&&ch!==4){errs.push(`Line ${i+1}: chapter must be 3 or 4`);return;}
+    if(!(d>=1&&d<=4)){errs.push(`Line ${i+1}: difficulty must be 1, 2, 3 or 4`);return;}
+    const e=p[p.length-1], answers=p.slice(3,p.length-1).filter(Boolean);
+    if(answers.length<2){errs.push(`Line ${i+1}: needs a correct answer and at least one wrong answer`);return;}
+    qs.push({id:qs.length,ch,d,q:p[2],a:answers.slice(0,4),e});
+  });
+  return {qs,errs};
+}
+let bankText=store.get(BANK_KEY)||DEFAULT_BANK;
+let BANK=parseBank(bankText).qs;
+if(!BANK.length){bankText=DEFAULT_BANK;BANK=parseBank(DEFAULT_BANK).qs;}
+function bankSummary(qs){const c3=qs.filter(q=>q.ch===3).length,c4=qs.filter(q=>q.ch===4).length;return `${qs.length} questions loaded: ${c3} from Chapter 3 and ${c4} from Chapter 4${store.get(BANK_KEY)?' (your edited bank)':''}.`;}
+$('bankInfo').textContent=bankSummary(BANK);
+
+/* ---------------- sound ---------------- */
+let actx=null, muted=store.get('aeq-mute')==='1';
+$('muteBtn').textContent='Sound: '+(muted?'off':'on');
+function tone(f,dur,type='square',vol=.06,slide=0,delay=0){
+  if(muted||!actx) return;
+  const t=actx.currentTime+delay, o=actx.createOscillator(), g=actx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(actx.destination);o.start(t);o.stop(t+dur+.02);
+}
+const sfx={
+  right(){tone(523,.12,'square',.05);tone(784,.18,'square',.05,0,.1);},
+  wrong(){tone(220,.25,'sawtooth',.05,-100);},
+  hit(){tone(160,.12,'square',.07,-80);},
+  crit(){tone(300,.08,'square',.07);tone(620,.14,'square',.06,0,.06);},
+  miss(){tone(500,.15,'triangle',.04,-300);},
+  hurt(){tone(110,.2,'sawtooth',.07,-40);},
+  pick(){tone(660,.08,'triangle',.06);tone(990,.1,'triangle',.05,0,.07);},
+  caught(){tone(330,.08,'square',.05);tone(250,.12,'square',.05,0,.08);},
+  gate(){[392,523,659,784].forEach((f,i)=>tone(f,.15,'triangle',.06,0,i*.1));},
+  fire(){tone(90,.5,'sawtooth',.08,60);}
+};
+$('muteBtn').onclick=()=>{muted=!muted;store.set('aeq-mute',muted?'1':'0');$('muteBtn').textContent='Sound: '+(muted?'off':'on');};
+
+/* ---------------- world definitions ---------------- */
+const ETYPES={
+  goblin:{name:'Goblin of Ignorance',hp:3,dmg:1,speed:62,chase:96,aggro:190,verb:'swings its club'},
+  slime:{name:'Unstable Atom',hp:3,dmg:1,speed:44,chase:74,aggro:170,verb:'zaps you with a stray electron'},
+  virus:{name:'Misinformation Virus',hp:2,dmg:1,speed:80,chase:112,aggro:210,verb:'spreads a rumour at you'},
+  raptor:{name:'Raptor',hp:4,dmg:2,speed:70,chase:128,aggro:230,verb:'snaps its teeth'},
+  wraith:{name:'Smog Wraith',hp:4,dmg:2,speed:56,chase:100,aggro:220,verb:'chokes you with smog'},
+  dragon:{name:'Ember Dragon',hp:10,dmg:2,speed:0,chase:0,aggro:0,verb:'breathes fire'}
+};
+const LANDS=[
+  {name:'Whispering Woods',ground:['#4d8a3f','#548f44'],tuft:'#3d7232',tree:['#2c5a2a','#3b7034'],trunk:'#5b3d22',rock:['#8c8f86','#6f726a'],water:['#2f6d97','#3c80aa'],
+   enemies:{goblin:4,slime:3},qd:[1,2],blurb:'Tall gum trees and quiet creeks. Goblins of Ignorance and Unstable Atoms wander the paths.'},
+  {name:'Scorched Plains',ground:['#c2a463','#c8ab6b'],tuft:'#a48a4c',tree:['#6c7a35','#7d8b40'],trunk:'#6a4a2b',rock:['#9a7b5a','#7f6347'],water:['#3d86a6','#4b95b5'],
+   enemies:{virus:4,raptor:3,goblin:2},qd:[1,3],blurb:'Dry grass and hot winds. Misinformation Viruses spread fast here, and the Raptors are hungry.'},
+  {name:'Frozen Peaks',ground:['#dfe9ef','#e7eff4'],tuft:'#c4d3dc',tree:['#2f5f56','#3c7066'],trunk:'#4c3a2c',rock:['#8e98a3','#727c87'],water:['#8cc3df','#a3d2ea'],
+   enemies:{wraith:3,raptor:2,virus:3,slime:2},qd:[2,3],blurb:'Shrinking snowfields and melting ice. Smog Wraiths drift down from the valleys.'},
+  {name:"Dragon's Lair",ground:['#3d2f2c','#453532'],tuft:'#55413b',tree:['#5a4744','#6b5550'],trunk:'#2a1f1c',rock:['#5e4a46','#4a3a37'],water:['#d2561d','#e8792c'],
+   enemies:{},qd:[2,3],boss:true,blurb:'The air smells of smoke. The Ember Dragon sleeps on a pile of old exam papers. Heal up, then wake it if you dare.'}
+];
+const AGG={range:1.8,speed:1.25,hunt:650}; // enemy aggression: chase range, chase speed, distance at which wandering drifts towards the player
+const ITEMS={
+  food:{name:'Wild apple',heal:2,qd:[1,1],verb:'You found a wild apple!'},
+  water:{name:'Water flask',heal:2,qd:[1,2],verb:'You found a flask of clean water!'},
+  shelter:{name:'Shelter',heal:3,qd:[2,2],verb:'You found a shelter to rest in!'},
+  medkit:{name:'First aid kit',heal:5,qd:[3,3],verb:'You found a first aid kit!'}
+};
+/* Difficulty settings. inv = seconds of safety after an encounter; items = share of supplies kept on the map;
+   extra = extra creatures per land; ehp = extra creature health; escape = correct answers in a row needed to escape;
+   qUp = how much harder questions get; poison = chance a supply is poisoned (shown only after a correct answer). */
+const DIFFS=[
+  {name:'Explorer',  hp:14,speedMul:.85,windup:.9, inv:1.5,items:1,  extra:0,ehp:0,escape:1,qUp:0,bossHp:10,window:7,claw:2,fire:2,poison:.2,poisonDmg:2},
+  {name:'Adventurer',hp:10,speedMul:1,  windup:.65,inv:1.1,items:.8, extra:1,ehp:0,escape:1,qUp:0,bossHp:12,window:6,claw:2,fire:2,poison:.2,poisonDmg:2},
+  {name:'Legend',    hp:8, speedMul:1.2,windup:.5, inv:.7, items:.6, extra:3,ehp:1,escape:2,qUp:1,bossHp:14,window:5,claw:3,fire:3,poison:.2,poisonDmg:2},
+  {name:'Nightmare', hp:6, speedMul:1.35,windup:.4,inv:.45,items:.45,extra:5,ehp:2,escape:2,qUp:1,bossHp:16,window:4,claw:3,fire:3,poison:.25,poisonDmg:3}
+];
+function qRange(a,b){const u=G.diff.qUp;return {min:Math.min(4,a+u),max:Math.min(4,b+u)};}
+
+/* ---------------- state ---------------- */
+let mode='menu';          // menu | level | play | question | fight | pause | over
+let G=null;               // game run
+let L=null;               // current land
+const keys={};
+let tLast=performance.now(), tGlobal=0;
+let toasts=[], particles=[], floaters=[];
+let shake=0;
+
+function newRun(){
+  const chv=document.querySelector('input[name=ch]:checked').value;
+  const dv=+document.querySelector('input[name=diff]:checked').value;
+  G={name:$('pname').value.trim(),chapters:chv==='both'?[3,4]:[+chv],diff:DIFFS[dv],diffIdx:dv,land:0,
+     hp:DIFFS[dv].hp,maxHp:DIFFS[dv].hp,score:0,used:new Set(),
+     stat:{3:{r:0,n:0},4:{r:0,n:0}},missed:[],outsmarted:0,poisoned:0,fightsWon:0,itemsGained:0,itemsLost:0,scrolls:0,
+     start:performance.now(),won:false,lastCh:4};
+}
+
+/* ---------------- map generation ---------------- */
+function genLand(idx){
+  const def=LANDS[idx], boss=!!def.boss;
+  const cols=boss?30:42, rows=boss?19:30;
+  const g=[];for(let y=0;y<rows;y++){g.push(new Array(cols).fill(0));}
+  const border=boss?3:1;
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)if(x===0||y===0||x===cols-1||y===rows-1)g[y][x]=border;
+  const nClusters=boss?10:Math.floor(cols*rows/34);
+  for(let i=0;i<nClusters;i++){
+    const r=Math.random(), type=boss?(r<.55?2:3):(r<.55?1:r<.75?3:2);
+    const cxp=ri(2,cols-3), cyp=ri(2,rows-3), rad=type===2?ri(1,3):ri(1,2);
+    for(let y=cyp-rad;y<=cyp+rad;y++)for(let x=cxp-rad;x<=cxp+rad;x++){
+      if(x<1||y<1||x>=cols-1||y>=rows-1)continue;
+      if(Math.hypot(x-cxp,y-cyp)<=rad+.3&&Math.random()<.8)g[y][x]=type;
+    }
+  }
+  const start={x:3,y:boss?Math.floor(rows/2):3};
+  const goal=boss?{x:cols-7,y:Math.floor(rows/2)}:{x:cols-4,y:rows-4};
+  const clear=(c,r)=>{for(let y=c.y-r;y<=c.y+r;y++)for(let x=c.x-r;x<=c.x+r;x++)if(x>0&&y>0&&x<cols-1&&y<rows-1)g[y][x]=0;};
+  clear(start,2);clear(goal,boss?3:2);
+  // ensure the goal is reachable
+  let reach=flood(g,start);
+  if(!reach.has(goal.y*cols+goal.x)){
+    let x=start.x,y=start.y;
+    while(x!==goal.x){g[y][x]=0;g[y+1<rows-1?y+1:y][x]=0;x+=Math.sign(goal.x-x);}
+    while(y!==goal.y){g[y][x]=0;g[y][x-1>0?x-1:x]=0;y+=Math.sign(goal.y-y);}
+    reach=flood(g,start);
+  }
+  const free=[...reach].map(k=>({x:k%cols,y:Math.floor(k/cols)}));
+  const taken=new Set();
+  const place=(minFromStart)=>{
+    for(let tries=0;tries<400;tries++){
+      const c=pick(free);
+      if(Math.hypot(c.x-start.x,c.y-start.y)<minFromStart)continue;
+      if(Math.hypot(c.x-goal.x,c.y-goal.y)<3)continue;
+      let ok=true;for(const k of taken){const tx=k%cols,ty=Math.floor(k/cols);if(Math.abs(tx-c.x)<2&&Math.abs(ty-c.y)<2){ok=false;break;}}
+      if(!ok)continue;
+      taken.add(c.y*cols+c.x);return {x:c.x*TS+TS/2,y:c.y*TS+TS/2};
+    }
+    const c=pick(free);return {x:c.x*TS+TS/2,y:c.y*TS+TS/2};
+  };
+  const land={idx,def,cols,rows,g,free,place,start:{x:start.x*TS+TS/2,y:start.y*TS+TS/2},enemies:[],items:[],scrolls:[],gate:null,dragon:null,bg:null,boss};
+  // items
+  const counts=boss?{food:2,water:1,shelter:1,medkit:1}:{food:5,water:3,shelter:2,medkit:1};
+  const keep=G?G.diff.items:1;
+  for(const k in counts){const n=Math.max(k==='food'||boss?1:0,Math.round(counts[k]*keep));for(let i=0;i<n;i++){const p=place(boss?3:5);land.items.push({kind:k,x:p.x,y:p.y,bob:Math.random()*TAU,poison:!!G&&Math.random()<G.diff.poison});}}
+  if(!boss){
+    for(let i=0;i<3;i++){const p=place(10);land.scrolls.push({x:p.x,y:p.y,bob:Math.random()*TAU});}
+    land.gate={x:goal.x*TS+TS/2,y:goal.y*TS+TS/2,open:false};
+    for(const k in def.enemies)for(let i=0;i<def.enemies[k];i++){const p=place(9);land.enemies.push(makeEnemy(k,p.x,p.y));}
+    const kinds=Object.keys(def.enemies);for(let i=0;i<(G?G.diff.extra:0);i++){const p=place(9);land.enemies.push(makeEnemy(kinds[i%kinds.length],p.x,p.y));}
+  }else{
+    land.dragon={x:goal.x*TS+TS/2,y:goal.y*TS+TS/2,awake:false};
+  }
+  land.bg=renderLand(land);
+  return land;
+}
+function flood(g,s){
+  const rows=g.length,cols=g[0].length,seen=new Set([s.y*cols+s.x]),q=[[s.x,s.y]];
+  while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=ny*cols+nx;if(nx<0||ny<0||nx>=cols||ny>=rows||seen.has(k)||g[ny][nx])continue;seen.add(k);q.push([nx,ny]);}}
+  return seen;
+}
+function makeEnemy(type,x,y){return {type,x,y,dir:Math.random()*TAU,turn:rnd(1,3),t:Math.random()*10,face:1,flee:0,gone:false};}
+
+function renderLand(land){
+  const c=document.createElement('canvas');c.width=land.cols*TS;c.height=land.rows*TS;
+  const g=c.getContext('2d'),d=land.def;
+  for(let y=0;y<land.rows;y++)for(let x=0;x<land.cols;x++){
+    g.fillStyle=d.ground[(x+y)%2];g.fillRect(x*TS,y*TS,TS,TS);
+    if(Math.random()<.35){g.fillStyle=d.tuft;for(let i=0;i<3;i++){const tx=x*TS+rnd(4,28),ty=y*TS+rnd(6,28);g.fillRect(tx,ty,2,4);g.fillRect(tx+3,ty+1,2,3);}}
+  }
+  // water first (so trees/rocks draw over neighbours)
+  for(let y=0;y<land.rows;y++)for(let x=0;x<land.cols;x++){
+    if(land.g[y][x]!==2)continue;
+    g.fillStyle=d.water[0];g.fillRect(x*TS,y*TS,TS,TS);
+    g.fillStyle=d.water[1];for(let i=0;i<2;i++){g.fillRect(x*TS+rnd(3,20),y*TS+rnd(4,26),rnd(6,10),2);}
+  }
+  for(let y=0;y<land.rows;y++)for(let x=0;x<land.cols;x++){
+    const t=land.g[y][x],px=x*TS+TS/2,py=y*TS+TS/2;
+    if(t===1){ // tree
+      g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(px,py+11,12,5,0,0,TAU);g.fill();
+      g.fillStyle=d.trunk;g.fillRect(px-3,py+2,6,10);
+      if(land.idx===2){ // pine
+        g.fillStyle=d.tree[0];g.beginPath();g.moveTo(px,py-16);g.lineTo(px+13,py+6);g.lineTo(px-13,py+6);g.fill();
+        g.fillStyle='#f3f8fb';g.beginPath();g.moveTo(px,py-16);g.lineTo(px+6,py-6);g.lineTo(px-6,py-6);g.fill();
+      }else{
+        g.fillStyle=d.tree[0];g.beginPath();g.arc(px,py-4,13,0,TAU);g.fill();
+        g.fillStyle=d.tree[1];g.beginPath();g.arc(px-4,py-8,7,0,TAU);g.fill();
+      }
+    }else if(t===3){ // rock
+      g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(px,py+10,13,4,0,0,TAU);g.fill();
+      g.fillStyle=d.rock[1];g.beginPath();g.moveTo(px-14,py+9);g.lineTo(px-10,py-6);g.lineTo(px+2,py-12);g.lineTo(px+13,py-3);g.lineTo(px+14,py+9);g.closePath();g.fill();
+      g.fillStyle=d.rock[0];g.beginPath();g.moveTo(px-9,py-5);g.lineTo(px+2,py-11);g.lineTo(px+8,py-4);g.lineTo(px-2,py);g.closePath();g.fill();
+    }
+  }
+  return c;
+}
+function solidAt(px,py){const tx=Math.floor(px/TS),ty=Math.floor(py/TS);if(!L||tx<0||ty<0||tx>=L.cols||ty>=L.rows)return true;return L.g[ty][tx]>0;}
+function blocked(x,y,r){return solidAt(x-r,y-r)||solidAt(x+r,y-r)||solidAt(x-r,y+r)||solidAt(x+r,y+r);}
+function moveBody(e,dx,dy,r){let hit=false;if(dx){if(!blocked(e.x+dx,e.y,r))e.x+=dx;else hit=true;}if(dy){if(!blocked(e.x,e.y+dy,r))e.y+=dy;else hit=true;}return hit;}
+
+/* ---------------- player ---------------- */
+const P={x:0,y:0,r:10,face:1,moving:false,inv:0,t:0};
+
+/* ---------------- flow ---------------- */
+function startLand(idx){
+  G.land=idx;L=genLand(idx);P.x=L.start.x;P.y=L.start.y;P.inv=1.5;
+  particles=[];floaters=[];
+  $('lvEyebrow').textContent=`Land ${idx+1} of ${LANDS.length}`;
+  $('lvName').textContent=L.def.name;
+  $('lvBlurb').textContent=L.def.blurb;
+  $('lvGoal').textContent=L.boss?'Goal: defeat the Ember Dragon. Each correct answer lets you strike; each wrong answer lets it breathe fire.':'Goal: find 3 Knowledge Scrolls to open the gate, then walk through it. The arrow near you points to the nearest scroll.';
+  show('levelCard');mode='level';
+}
+function show(id){$(id).hidden=false;}
+function hide(id){$(id).hidden=true;}
+function toast(msg,color){toasts.push({msg,color:color||'#f4e7c6',life:3});if(toasts.length>4)toasts.shift();}
+function burst(x,y,color,n=14){for(let i=0;i<n;i++){const a=Math.random()*TAU,s=rnd(40,140);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(.4,.8),color});}}
+function floatText(x,y,txt,color){floaters.push({x,y,txt,color,life:1.2});}
+
+/* ---------------- question picking ---------------- */
+function pickQuestion(minD,maxD){
+  let pool=BANK.filter(q=>G.chapters.includes(q.ch));
+  if(!pool.length)pool=BANK;
+  let unused=pool.filter(q=>!G.used.has(q.id));
+  if(!unused.length){pool.forEach(q=>G.used.delete(q.id));unused=pool;toast('You have seen every question. The bank has been reshuffled.');}
+  let cand=unused;
+  if(G.chapters.length>1){ // alternate chapters so both get equal time
+    const want=G.lastCh===3?4:3; const c2=cand.filter(q=>q.ch===want); if(c2.length)cand=c2;
+  }
+  const c3=cand.filter(q=>q.d>=minD&&q.d<=maxD); if(c3.length)cand=c3;
+  const q=pick(cand);G.used.add(q.id);G.lastCh=q.ch;return q;
+}
+
+/* ---------------- question UI ---------------- */
+let Q=null;
+function askQuestion(opts,cb){
+  const q=pickQuestion(opts.min,opts.max);
+  const choices=shuffle(q.a.map((t,i)=>({t,ok:i===0})));
+  Q={q,choices,cb,answered:false,opened:performance.now(),prevMode:mode};
+  mode='question';
+  $('qTitle').textContent=opts.title;
+  $('qStake').textContent=opts.stake;
+  const b=$('qBadge');b.textContent=q.ch===3?'Chapter 3':'Chapter 4';b.className='badge '+(q.ch===3?'c3':'c4');
+  $('qStars').textContent='★'.repeat(q.d)+'☆'.repeat(Math.max(0,3-q.d));
+  $('qStars').setAttribute('aria-label',`Difficulty ${q.d}`);
+  $('qText').textContent=q.q;
+  const box=$('qOpts');box.innerHTML='';
+  choices.forEach((c,i)=>{
+    const btn=document.createElement('button');btn.type='button';btn.className='opt';
+    btn.innerHTML=`<span class="k">${i+1}</span><span></span>`;btn.lastChild.textContent=c.t;
+    btn.onclick=()=>answer(i);box.appendChild(btn);
+  });
+  hide('qFeedback');$('qFeedback').hidden=true;hide('qContRow');
+  show('qBox');sfx.caught();
+  setTimeout(()=>{if(Q&&!Q.answered){const f=box.querySelector('button');f&&f.focus({preventScroll:true});}},50);
+}
+function answer(i){
+  if(!Q||Q.answered||performance.now()-Q.opened<350)return;
+  Q.answered=true;
+  const c=Q.choices[i], ok=c.ok, q=Q.q;Q.ok=ok;
+  const btns=[...$('qOpts').children];
+  btns.forEach((b,j)=>{b.disabled=true;if(Q.choices[j].ok)b.classList.add('right');else if(j===i)b.classList.add('wrong');});
+  G.stat[q.ch].n++; if(ok){G.stat[q.ch].r++;G.score+=50*q.d;sfx.right();}else{sfx.wrong();G.missed.push({q:q.q,a:q.a[0],e:q.e,ch:q.ch});}
+  const fb=$('qFeedback');fb.hidden=false;fb.className='feedback '+(ok?'ok':'no');
+  fb.innerHTML=`<b>${ok?'Correct!':'Not quite.'}</b> `;
+  if(!ok){const s=document.createElement('span');s.textContent=`The answer is: ${q.a[0]}. `;fb.appendChild(s);}
+  const ex=document.createElement('span');ex.textContent=q.e;fb.appendChild(ex);
+  show('qContRow');Q.answeredAt=performance.now();
+  setTimeout(()=>$('qCont').focus({preventScroll:true}),30);
+}
+function continueQuestion(){
+  if(!Q||!Q.answered||performance.now()-Q.answeredAt<300)return;
+  const ok=Q.ok;
+  const cb=Q.cb, prev=Q.prevMode;Q=null;hide('qBox');mode=prev;cb(ok);
+}
+$('qCont').onclick=continueQuestion;
+
+/* ---------------- encounters ---------------- */
+function encounterEnemy(e){
+  const def=ETYPES[e.type];
+  const need=G.diff.escape, r=qRange(L.def.qd[0],L.def.qd[1]);
+  const ask=n=>askQuestion({min:r.min,max:r.max,title:n===1?`Caught by a ${def.name}!`:`The ${def.name} is still after you!`,
+    stake:need>1?(n===1?`Answer ${need} questions in a row correctly and it runs away. One wrong answer and it strikes first.`:`Question ${n} of ${need}. One more correct answer to escape.`):'Answer correctly and it runs away. Answer wrongly and it strikes first.'},ok=>{
+    if(ok&&n<need){ask(n+1);return;}
+    if(ok){e.flee=1;G.outsmarted++;G.score+=25*need;P.inv=G.diff.inv;toast(`You outsmarted the ${def.name}!`,'#9fe0b5');burst(e.x,e.y,'#ffe08a');}
+    else startFight(e,true);
+  });
+  ask(1);
+}
+function encounterItem(it){
+  const def=ITEMS[it.kind];
+  const r=qRange(def.qd[0],def.qd[1]);
+  askQuestion({min:r.min,max:r.max,title:def.verb,stake:`Answer correctly to use it: most supplies give +${def.heal} health, but some are poisoned. Answer wrongly and you leave it behind.`},ok=>{
+    it.gone=true;
+    if(ok&&it.poison){const dmg=G.diff.poisonDmg;G.hp=Math.max(0,G.hp-dmg);G.poisoned++;sfx.hurt();shake=.3;floatText(P.x,P.y-24,`−${dmg} health`,'#c79bff');burst(it.x,it.y,'#9c5bd6',18);
+      toast(`Bad luck! The ${def.name.toLowerCase()} was poisoned.`,'#d6b3ff');if(G.hp<=0){setTimeout(()=>endGame(false,`poisoned by a ${def.name.toLowerCase()}`),600);mode='over';return;}}
+    else if(ok){const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+def.heal);G.itemsGained++;G.score+=20;sfx.pick();floatText(P.x,P.y-24,`+${G.hp-before} health`,'#9fe0b5');burst(it.x,it.y,'#9fe0b5');if(G.hp-before<def.heal)toast(`Health is full (${G.maxHp}).`);}
+    else{G.itemsLost++;burst(it.x,it.y,'#9b8f7f');toast(`You left the ${def.name.toLowerCase()} behind.`,'#f0a79f');}
+    P.inv=Math.min(.8,G.diff.inv);
+  });
+}
+function encounterScroll(s){
+  askQuestion({...qRange(2,3),title:'A Knowledge Scroll!',stake:'Answer correctly to claim it. Answer wrongly and the wind carries it away.'},ok=>{
+    if(ok){s.got=true;G.scrolls++;G.score+=100;sfx.pick();burst(s.x,s.y,'#ffd36b',22);
+      const left=L.scrolls.filter(x=>!x.got).length;
+      if(left===0){L.gate.open=true;sfx.gate();toast('All 3 scrolls found! The gate is open. Follow the arrow.','#ffd36b');}
+      else toast(`Scroll claimed! ${left} to go.`,'#ffd36b');}
+    else{const p=L.place(4);burst(s.x,s.y,'#ffffff');s.x=p.x;s.y=p.y;toast('A gust of wind blew the scroll away. Follow the arrow to find it.','#f0a79f');}
+    P.inv=Math.min(.8,G.diff.inv);
+  });
+}
+
+/* ---------------- fight (real-time duel) ---------------- */
+let F=null;
+const REACH={goblin:108,slime:100,virus:100,raptor:120,wraith:112,dragon:165};
+const PREACH=125, BOSS_PREACH=185;
+const hold={l:false,r:false};
+function windupTime(){return G.diff.windup;}
+function startFight(enemy,enemyFirst){
+  const def=ETYPES[enemy.type], boss=enemy.type==='dragon';
+  const hp0=boss?G.diff.bossHp:def.hp+G.diff.ehp;
+  F={enemy,def,boss,hp:hp0,max:hp0,done:false,res:null,
+     px:boss?140:(enemyFirst?300:170),ex:boss?500:(enemyFirst?385:480),
+     pCd:0,pSwing:0,eState:'approach',eT:0,eSwing:0,hitFlash:{p:0,e:0},fire:0,phase:boss?'intro':'duel',window:0};
+  if(enemyFirst){F.eState='windup';F.eT=windupTime()*1.4;}
+  $('fTitle').textContent=boss?'Boss battle: the Ember Dragon':`Fight: ${def.name}`;
+  $('fCont').hidden=true;$('fControls').hidden=false;
+  show('fightBox');mode='fight';
+  if(boss){log('The Ember Dragon wakes up, wrapped in a shield of smoke! Answer its questions to break the shield.');setTimeout(bossQuestion,1800);}
+  else if(enemyFirst)log(`The ${def.name} is winding up to attack! Step back with ← to dodge, then move in with → and strike with Space.`);
+  else log('Move in with →, strike with Space, and step back with ← when it winds up to attack.');
+}
+function log(t){$('fLog').textContent=t;}
+function fightLive(){return F&&!F.done&&mode==='fight'&&(!F.boss||F.phase==='window');}
+function hurtPlayer(dmg,msg){
+  G.hp=Math.max(0,G.hp-dmg);F.hitFlash.p=.45;shake=.3;sfx.hurt();fFloat(F.px,90,`−${dmg}`,'#ff8f84');
+  log(`${msg} You lose ${dmg} health.`);
+  if(G.hp<=0)playerDefeated();
+}
+function updateFight(dt){
+  if(!F)return;
+  F.hitFlash.p=Math.max(0,F.hitFlash.p-dt);F.hitFlash.e=Math.max(0,F.hitFlash.e-dt);
+  F.pSwing=Math.max(0,F.pSwing-dt*4);F.eSwing=Math.max(0,F.eSwing-dt*3);F.fire=Math.max(0,F.fire-dt);
+  if(!fightLive())return;
+  const gap=F.boss?110:55;
+  const ix=((keys.r||hold.r)?1:0)-((keys.l||hold.l)?1:0);
+  F.px=clamp(F.px+ix*210*dt,40,F.ex-gap);
+  F.pCd=Math.max(0,F.pCd-dt);
+  if(F.boss){F.window-=dt;if(F.window<=0){F.phase='wait';F.eState='approach';log('The smoke shield closes around the dragon again...');setTimeout(bossQuestion,900);return;}}
+  const reach=REACH[F.enemy.type], d=F.ex-F.px;
+  if(F.eState==='approach'){
+    if(!F.boss&&d>reach-18)F.ex=Math.max(F.px+gap,F.ex-ETYPES[F.enemy.type].chase*.9*G.diff.speedMul*dt);
+    else if(d<=reach-(F.boss?0:18)||(!F.boss)){F.eState='windup';F.eT=windupTime()*(F.boss?1.25:1);}
+  }else if(F.eState==='windup'){
+    F.eT-=dt;
+    if(F.eT<=0){
+      F.eSwing=1;F.eState='recover';F.eT=rnd(.7,1.2);
+      if(F.ex-F.px<=reach+6)hurtPlayer(F.boss?G.diff.claw:F.def.dmg,F.boss?'The dragon slashes with its claws!':`The ${F.def.name} ${F.def.verb}!`);
+      else{sfx.miss();fFloat(F.px,90,'Dodged!','#9fe0b5');log(`You stepped back and dodged the ${F.def.name}! Now move in and strike.`);}
+    }
+  }else if(F.eState==='recover'){
+    F.eT-=dt;if(!F.boss)F.ex=Math.min(590,F.ex+40*dt);
+    if(F.eT<=0)F.eState='approach';
+  }
+}
+function strike(){
+  if(!fightLive()||F.pCd>0)return;
+  F.pCd=.45;F.pSwing=1;
+  const d=F.ex-F.px;
+  if(d>(F.boss?BOSS_PREACH:PREACH)){sfx.miss();fFloat(F.px+40,110,'Too far!','#f4e7c6');log('Too far away! Move in closer with → before you strike.');return;}
+  const counter=F.eState==='windup', dmg=counter?2:1;
+  F.hp=Math.max(0,F.hp-dmg);F.hitFlash.e=.4;counter?sfx.crit():sfx.hit();
+  fFloat(F.ex,80,`−${dmg}`,'#ffd36b');
+  if(!F.boss)F.ex=Math.min(590,F.ex+30);
+  if(counter){F.eState='recover';F.eT=.9;log('Counter-hit! You struck while it was winding up, for double damage.');}
+  else log(`A solid hit! The ${F.def.name} loses 1 health.`);
+  if(F.hp<=0)enemyDefeated();
+}
+function bossQuestion(){
+  if(!F||F.done)return;
+  F.phase='question';
+  askQuestion({...qRange(2,3),title:'The Ember Dragon demands an answer!',stake:`Correct: the smoke shield drops for ${G.diff.window} seconds so you can attack. Wrong: the dragon breathes fire.`},ok=>{
+    if(!F)return;
+    if(ok){F.phase='window';F.window=G.diff.window;F.eState='approach';log(`Correct! The shield is down for ${G.diff.window} seconds. Move in and strike, and step back when it raises its claws!`);}
+    else{F.phase='fire';F.fire=1.3;sfx.fire();log('Wrong answer! The dragon takes a deep breath...');
+      setTimeout(()=>{if(!F||F.done)return;hurtPlayer(G.diff.fire,'The dragon breathes fire!');if(!F.done)setTimeout(bossQuestion,1100);},700);}
+  });
+}
+function enemyDefeated(){
+  F.done=true;F.res='win';G.fightsWon++;G.score+=F.boss?1000:75;
+  $('fControls').hidden=true;$('fCont').hidden=false;$('fCont').focus({preventScroll:true});F.endAt=performance.now();
+  log(F.boss?'The Ember Dragon is defeated! You have conquered every land.':`You defeated the ${F.def.name}!`);sfx.gate();
+}
+function playerDefeated(){
+  F.done=true;F.res='lose';
+  $('fControls').hidden=true;$('fCont').hidden=false;$('fCont').focus({preventScroll:true});F.endAt=performance.now();
+  log(`You have run out of health. The ${F.def.name} wins this time.`);
+}
+function endFight(){
+  if(!F||!F.done||performance.now()-F.endAt<400)return;
+  const f=F;F=null;hide('fightBox');hold.l=hold.r=false;
+  if(f.res==='lose'){endGame(false);return;}
+  if(f.boss){G.won=true;endGame(true);return;}
+  f.enemy.gone=true;burst(f.enemy.x,f.enemy.y,'#c9c2b0',18);P.inv=G.diff.inv;mode='play';
+}
+let fFloats=[];
+function fFloat(x,y,txt,color){fFloats.push({x,y,txt,color,life:1.1});}
+$('strikeBtn').onclick=strike;
+$('fCont').onclick=endFight;
+[['backBtn','l'],['fwdBtn','r']].forEach(([id,k])=>{const b=$(id);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();hold[k]=true;try{b.setPointerCapture(e.pointerId);}catch(_){}});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>{hold[k]=false;}));});
+
+/* ---------------- end ---------------- */
+function pct(r,n){return n?Math.round(100*r/n)+'%':'–';}
+function endGame(won,cause){
+  mode='over';hide('pauseBox');hide('fightBox');hide('qBox');
+  const s=G.stat, R=s[3].r+s[4].r, N=s[3].n+s[4].n;
+  const mins=Math.max(1,Math.round((performance.now()-G.start)/60000));
+  $('eEyebrow').textContent=(G.name?G.name+' · ':'')+new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+  $('eTitle').textContent=won?'Quest complete!':`Defeated in ${LANDS[G.land].name}`+(cause?` (${cause})`:'');
+  $('eSub').textContent=won?`You crossed all three lands and beat the Ember Dragon on ${G.diff.name} difficulty.`:`You reached land ${G.land+1} of ${LANDS.length} on ${G.diff.name} difficulty. Review the questions below and try again.`;
+  const cells=[['Score',G.score],['Accuracy',`${pct(R,N)}`],['Questions right',`${R} / ${N}`]];
+  if(G.chapters.includes(3))cells.push(['Chapter 3',`${s[3].r}/${s[3].n} · ${pct(s[3].r,s[3].n)}`]);
+  if(G.chapters.includes(4))cells.push(['Chapter 4',`${s[4].r}/${s[4].n} · ${pct(s[4].r,s[4].n)}`]);
+  cells.push(['Creatures outsmarted',G.outsmarted],['Fights won',G.fightsWon],['Supplies used / left behind',`${G.itemsGained} / ${G.itemsLost}`],['Poisoned supplies',G.poisoned],['Scrolls claimed',G.scrolls],['Time played',`${mins} min`]);
+  $('eStats').innerHTML='';
+  cells.forEach(([l,v])=>{const d=document.createElement('div');d.innerHTML='<span class="v"></span><span class="l"></span>';d.firstChild.textContent=v;d.lastChild.textContent=l;$('eStats').appendChild(d);});
+  const ul=$('eReview');ul.innerHTML='';
+  const seen=new Set();
+  G.missed.forEach(m=>{if(seen.has(m.q))return;seen.add(m.q);const li=document.createElement('li');
+    li.innerHTML='<span class="badge"></span> <span class="qq"></span><br><span class="ans"></span> <span class="ex"></span>';
+    li.children[0].textContent='Ch '+m.ch;li.children[0].className='badge '+(m.ch===3?'c3':'c4');
+    li.querySelector('.qq').textContent=m.q;li.querySelector('.ans').textContent='Answer: '+m.a+'.';li.querySelector('.ex').textContent=m.e;ul.appendChild(li);});
+  $('eReviewWrap').hidden=!G.missed.length;
+  show('endBox');setTimeout(()=>$('againBtn').focus({preventScroll:true}),50);
+}
+$('againBtn').onclick=()=>{hide('endBox');show('menu');mode='menu';L=genLand(0);P.x=L.start.x;P.y=L.start.y;};
+
+/* ---------------- menu & bank ---------------- */
+$('startBtn').onclick=()=>{
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  if(actx&&actx.state==='suspended')actx.resume();
+  newRun();hide('menu');startLand(0);setTimeout(()=>$('lvGo').focus({preventScroll:true}),30);
+};
+$('lvGo').onclick=()=>{if(mode!=='level')return;hide('levelCard');mode='play';P.inv=1.2;};
+$('bankBtn').onclick=()=>{$('bankText').value=bankText;$('bankErr').textContent='';$('bankStatus').textContent=bankSummary(BANK);show('bankBox');};
+$('bankClose').onclick=()=>hide('bankBox');
+$('bankSave').onclick=()=>{
+  const {qs,errs}=parseBank($('bankText').value);
+  if(errs.length){$('bankErr').textContent=`Not saved. Fix ${errs.length===1?'this line':'these lines'} first:\n`+errs.slice(0,8).join('\n')+(errs.length>8?`\n…and ${errs.length-8} more`:'');return;}
+  if(qs.length<4){$('bankErr').textContent='Not saved. The bank needs at least 4 questions.';return;}
+  bankText=$('bankText').value;BANK=qs;
+  const ok=store.set(BANK_KEY,bankText);
+  $('bankErr').textContent='';
+  $('bankStatus').textContent=(ok?'Saved. ':'Using your edits for now, but this browser would not store them for next time. ')+bankSummary(BANK);
+  $('bankInfo').textContent=bankSummary(BANK);
+};
+$('bankReset').onclick=()=>{store.del(BANK_KEY);bankText=DEFAULT_BANK;BANK=parseBank(DEFAULT_BANK).qs;$('bankText').value=bankText;$('bankErr').textContent='';$('bankStatus').textContent='Original questions restored. '+bankSummary(BANK);$('bankInfo').textContent=bankSummary(BANK);};
+$('resumeBtn').onclick=()=>togglePause();
+$('quitBtn').onclick=()=>{hide('pauseBox');endGame(false);};
+function togglePause(){if(mode==='play'){mode='pause';show('pauseBox');$('resumeBtn').focus({preventScroll:true});}else if(mode==='pause'){mode='play';hide('pauseBox');}}
+
+/* ---------------- input ---------------- */
+const MOVE={ArrowUp:'u',KeyW:'u',ArrowDown:'d',KeyS:'d',ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r'};
+window.addEventListener('keydown',e=>{
+  const tag=(e.target&&e.target.tagName)||'';
+  if(tag==='TEXTAREA'||(tag==='INPUT'&&e.target.type==='text'))return;
+  if(MOVE[e.code]){keys[MOVE[e.code]]=true;if(mode!=='menu')e.preventDefault();}
+  if(e.repeat)return;
+  if(mode==='question'&&Q){
+    const n=parseInt(e.key,10);
+    if(!Q.answered&&n>=1&&n<=Q.choices.length){e.preventDefault();answer(n-1);}
+    else if(Q.answered&&(e.code==='Enter'||e.code==='Space'||e.code==='NumpadEnter')){e.preventDefault();continueQuestion();}
+    else if(e.code==='Space'||e.code==='Enter')e.preventDefault();
+    return;
+  }
+  if(mode==='fight'&&F){
+    if(e.code==='Space'||e.code==='Enter'){e.preventDefault();if(F.done)endFight();else if(e.code==='Space')strike();}
+    return;
+  }
+  if(mode==='level'&&(e.code==='Enter'||e.code==='Space')){e.preventDefault();$('lvGo').click();return;}
+  if((mode==='play'||mode==='pause')&&(e.code==='KeyP'||e.code==='Escape')){e.preventDefault();togglePause();return;}
+  if(mode==='play'&&e.code==='Space')e.preventDefault();
+});
+window.addEventListener('keyup',e=>{if(MOVE[e.code])keys[MOVE[e.code]]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+// touch joystick
+const joy={on:false,id:null,ox:0,oy:0,dx:0,dy:0};
+function canvasPt(ev){const r=cv.getBoundingClientRect();return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*H/r.height};}
+cv.addEventListener('pointerdown',ev=>{if(ev.pointerType==='mouse')return;const p=canvasPt(ev);joy.on=true;joy.id=ev.pointerId;joy.ox=p.x;joy.oy=p.y;joy.dx=joy.dy=0;cv.setPointerCapture(ev.pointerId);});
+cv.addEventListener('pointermove',ev=>{if(!joy.on||ev.pointerId!==joy.id)return;const p=canvasPt(ev);let dx=p.x-joy.ox,dy=p.y-joy.oy;const m=Math.hypot(dx,dy);if(m>50){dx*=50/m;dy*=50/m;}joy.dx=dx/50;joy.dy=dy/50;});
+const joyEnd=ev=>{if(ev.pointerId===joy.id){joy.on=false;joy.dx=joy.dy=0;}};
+cv.addEventListener('pointerup',joyEnd);cv.addEventListener('pointercancel',joyEnd);
+
+/* ---------------- update ---------------- */
+function update(dt){
+  P.t+=dt;P.inv=Math.max(0,P.inv-dt);
+  let ix=(keys.r?1:0)-(keys.l?1:0), iy=(keys.d?1:0)-(keys.u?1:0);
+  if(joy.on&&Math.hypot(joy.dx,joy.dy)>.2){ix=joy.dx;iy=joy.dy;}
+  const m=Math.hypot(ix,iy);
+  P.moving=m>.1;
+  if(P.moving){const sp=150*dt/Math.max(1,m);moveBody(P,ix*sp,iy*sp,P.r);if(Math.abs(ix)>.1)P.face=ix>0?1:-1;}
+  // enemies
+  for(const e of L.enemies){
+    if(e.gone)continue;e.t+=dt;
+    const def=ETYPES[e.type], sm=G.diff.speedMul;
+    if(e.flee>0){e.flee-=dt;const a=Math.atan2(e.y-P.y,e.x-P.x);moveBody(e,Math.cos(a)*160*dt,Math.sin(a)*160*dt,9);if(e.flee<=0)e.gone=true;continue;}
+    const d=dist(e,P);
+    let sp=def.speed*sm, a=e.dir;
+    if(d<def.aggro*AGG.range&&P.inv<=0){a=Math.atan2(P.y-e.y,P.x-e.x);sp=def.chase*sm*AGG.speed;if(e.type==='virus')a+=Math.sin(e.t*9)*.6;}
+    else{e.turn-=dt;if(e.turn<=0){e.dir=d<AGG.hunt?Math.atan2(P.y-e.y,P.x-e.x)+rnd(-.5,.5):Math.random()*TAU;e.turn=rnd(.6,1.4);}a=e.dir;sp=def.speed*sm*(d<AGG.hunt?1.5:1);if(e.type==='virus')a+=Math.sin(e.t*6)*.6;}
+    if(e.type==='slime')sp*=.55+.45*Math.max(0,Math.sin(e.t*6));
+    const dx=Math.cos(a)*sp*dt, dy=Math.sin(a)*sp*dt;
+    if(moveBody(e,dx,dy,9))e.dir=Math.random()*TAU;
+    if(Math.abs(dx)>.01)e.face=dx>0?1:-1;
+    if(P.inv<=0&&d<P.r+11){encounterEnemy(e);return;}
+  }
+  L.enemies=L.enemies.filter(e=>!e.gone);
+  if(P.inv<=0){
+    for(const it of L.items){if(!it.gone&&dist(it,P)<22){encounterItem(it);return;}}
+    for(const s of L.scrolls){if(!s.got&&dist(s,P)<22){encounterScroll(s);return;}}
+  }
+  L.items=L.items.filter(i=>!i.gone);
+  if(L.gate&&L.gate.open&&dist(L.gate,P)<20){landComplete();return;}
+  if(L.dragon&&dist(L.dragon,P)<44&&P.inv<=0){L.dragon.awake=true;startFight({type:'dragon',x:L.dragon.x,y:L.dragon.y},false);return;}
+}
+function landComplete(){
+  sfx.gate();G.score+=300;
+  const heal=Math.min(3,G.maxHp-G.hp);G.hp+=heal;
+  startLand(G.land+1);
+  if(heal)$('lvGoal').textContent=`You rested at the gate and recovered ${heal} health. `+$('lvGoal').textContent;
+}
+
+/* ---------------- sprites ---------------- */
+function shadow(c,w){c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,12,w,w*.35,0,0,TAU);c.fill();}
+function sprPlayer(c,x,y,s,t,face,moving,swing){
+  c.save();c.translate(x,y);c.scale(s*face,s);
+  shadow(c,10);
+  const b=moving?Math.sin(t*14)*2:0;
+  c.fillStyle='#3a2a1e';c.fillRect(-6,4+b,4,8-b);c.fillRect(2,4-b,4,8+b);
+  c.fillStyle='#2f7f86';c.beginPath();c.roundRect(-8,-7,16,13,4);c.fill();
+  c.fillStyle='#f4e7c6';c.fillRect(-8,-1,16,2);
+  c.fillStyle='#e9a23b';c.fillRect(-2,-1,4,2);
+  c.fillStyle='#f0c9a0';c.beginPath();c.arc(0,-13,6.5,0,TAU);c.fill();
+  c.fillStyle='#4a2f1f';c.beginPath();c.arc(0,-15,6.8,Math.PI*1.02,Math.PI*1.98);c.fill();
+  c.fillStyle='#e9a23b';c.fillRect(-6,-15,12,3);
+  c.fillStyle='#bfe6f0';c.beginPath();c.arc(2,-13.5,2.2,0,TAU);c.arc(-2.4,-13.5,2.2,0,TAU);c.fill();
+  c.save();c.translate(7,-1);c.rotate(.5+(swing?Math.sin(swing*Math.PI)*1.3:0));
+  c.fillStyle='#d9dde0';c.fillRect(-1.2,-15,2.4,15);c.fillStyle='#e9a23b';c.fillRect(-3.5,-1,7,2.5);c.fillStyle='#5b3d22';c.fillRect(-1,1,2,4);
+  c.restore();
+  c.restore();
+}
+function sprEnemy(c,type,x,y,s,t,face,alpha){
+  c.save();c.translate(x,y);c.scale(s*face,s);c.globalAlpha=alpha==null?1:alpha;
+  if(type==='goblin'){
+    shadow(c,9);const b=Math.sin(t*10)*1.5;
+    c.fillStyle='#3d2a1a';c.fillRect(-5,5+b,4,7);c.fillRect(1,5-b,4,7);
+    c.fillStyle='#5b8f37';c.beginPath();c.ellipse(0,0,8,8,0,0,TAU);c.fill();
+    c.fillStyle='#7a5530';c.fillRect(-8,-1,16,4);
+    c.fillStyle='#6aa142';c.beginPath();c.arc(0,-11,7,0,TAU);c.fill();
+    c.beginPath();c.moveTo(-6,-13);c.lineTo(-14,-17);c.lineTo(-6,-9);c.fill();c.beginPath();c.moveTo(6,-13);c.lineTo(14,-17);c.lineTo(6,-9);c.fill();
+    c.fillStyle='#ffe08a';c.beginPath();c.arc(-2.5,-12,1.8,0,TAU);c.arc(2.8,-12,1.8,0,TAU);c.fill();
+    c.fillStyle='#2a1a10';c.fillRect(-3,-12.5,1.4,1.4);c.fillRect(3,-12.5,1.4,1.4);
+    c.fillStyle='#fff';c.fillRect(-2,-8,1.5,2);c.fillRect(1.5,-8,1.5,2);
+    c.save();c.translate(8,0);c.rotate(-.5+Math.sin(t*5)*.25);c.fillStyle='#6b4524';c.fillRect(-1.5,-14,3,14);c.beginPath();c.arc(0,-14,3.5,0,TAU);c.fill();c.restore();
+    c.save();c.scale(face,1);c.fillStyle='#f4e7c6';c.font='bold 9px sans-serif';c.textAlign='center';c.fillText('?',-10*face,-20);c.restore();
+  }else if(type==='slime'){
+    shadow(c,10);const sq=1+Math.sin(t*6)*.12;
+    c.save();c.scale(1/sq,sq);
+    c.fillStyle='rgba(150,96,214,.85)';c.beginPath();c.moveTo(-11,8);c.quadraticCurveTo(-12,-12,0,-13);c.quadraticCurveTo(12,-12,11,8);c.closePath();c.fill();
+    c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.ellipse(-5,-6,3,5,-.4,0,TAU);c.fill();
+    c.restore();
+    c.fillStyle='#e0574c';c.beginPath();c.arc(-1.5,0,2.4,0,TAU);c.fill();c.fillStyle='#5a8de0';c.beginPath();c.arc(1.8,1,2.4,0,TAU);c.fill();c.fillStyle='#e0574c';c.beginPath();c.arc(0.5,-2.5,2.2,0,TAU);c.fill();
+    c.strokeStyle='rgba(255,240,180,.7)';c.lineWidth=.8;
+    for(let i=0;i<3;i++){const ang=i*TAU/3;c.save();c.rotate(ang);c.beginPath();c.ellipse(0,0,15,5,0,0,TAU);c.stroke();
+      const p=t*3+i;c.fillStyle='#fff6c0';c.beginPath();c.arc(Math.cos(p)*15,Math.sin(p)*5,1.8,0,TAU);c.fill();c.restore();}
+    c.fillStyle='#fff';c.beginPath();c.arc(-4,-6,2.4,0,TAU);c.arc(4,-6,2.4,0,TAU);c.fill();c.fillStyle='#222';c.beginPath();c.arc(-3.4,-6,1.1,0,TAU);c.arc(4.6,-6,1.1,0,TAU);c.fill();
+  }else if(type==='virus'){
+    shadow(c,9);c.save();c.translate(0,-2);c.rotate(t*1.5);
+    c.strokeStyle='#a8322b';c.lineWidth=2;c.fillStyle='#f07a5a';
+    for(let i=0;i<9;i++){const a=i*TAU/9;c.beginPath();c.moveTo(Math.cos(a)*8,Math.sin(a)*8);c.lineTo(Math.cos(a)*13,Math.sin(a)*13);c.stroke();c.beginPath();c.arc(Math.cos(a)*14,Math.sin(a)*14,2.2,0,TAU);c.fill();}
+    c.restore();
+    c.fillStyle='#d9453a';c.beginPath();c.arc(0,-2,9,0,TAU);c.fill();
+    c.fillStyle='#ef6a55';c.beginPath();c.arc(-3,-5,3,0,TAU);c.fill();
+    c.fillStyle='#fff';c.beginPath();c.arc(-3,-3,2.2,0,TAU);c.arc(3,-3,2.2,0,TAU);c.fill();
+    c.fillStyle='#000';c.beginPath();c.arc(-2.5,-2.6,1,0,TAU);c.arc(3.5,-2.6,1,0,TAU);c.fill();
+    c.strokeStyle='#000';c.lineWidth=1.2;c.beginPath();c.moveTo(-5,-6.5);c.lineTo(-1,-5);c.moveTo(5,-6.5);c.lineTo(1,-5);c.stroke();
+  }else if(type==='raptor'){
+    shadow(c,12);const b=Math.sin(t*14);
+    c.strokeStyle='#6d3f1d';c.lineWidth=3;c.beginPath();c.moveTo(-2,2);c.lineTo(-4+b*3,12);c.moveTo(3,2);c.lineTo(4-b*3,12);c.stroke();
+    c.fillStyle='#c77a34';c.beginPath();c.moveTo(-6,-3);c.lineTo(-20,-6+Math.sin(t*6)*2);c.lineTo(-6,3);c.fill();
+    c.beginPath();c.ellipse(0,-1,10,6.5,-.15,0,TAU);c.fill();
+    c.fillStyle='#8f5122';c.fillRect(-5,-6,2,5);c.fillRect(-1,-7,2,5);c.fillRect(3,-6,2,4);
+    c.fillStyle='#c77a34';c.beginPath();c.moveTo(6,-4);c.lineTo(9,-12);c.lineTo(12,-10);c.lineTo(9,-2);c.fill();
+    c.beginPath();c.ellipse(13,-12,7,4,.1,0,TAU);c.fill();
+    c.fillStyle='#fff';for(let i=0;i<4;i++)c.fillRect(11+i*2.2,-9.2,1.2,1.8);
+    c.fillStyle='#ffe08a';c.beginPath();c.arc(13,-14,1.6,0,TAU);c.fill();c.fillStyle='#000';c.fillRect(13.3,-14.6,.9,1.4);
+    c.strokeStyle='#8f5122';c.lineWidth=1.6;c.beginPath();c.moveTo(6,0);c.lineTo(9,3);c.stroke();
+  }else if(type==='wraith'){
+    const f=Math.sin(t*3)*2;c.translate(0,f);
+    c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(0,14-f,9,3,0,0,TAU);c.fill();
+    for(let i=0;i<4;i++){const a=t*1.4+i*1.6;c.fillStyle='rgba(120,124,128,.35)';c.beginPath();c.arc(Math.cos(a)*13,Math.sin(a)*5-4,4+i%2*2,0,TAU);c.fill();}
+    c.fillStyle='#8e9499';c.beginPath();c.moveTo(-10,-4);c.quadraticCurveTo(-11,-20,0,-20);c.quadraticCurveTo(11,-20,10,-4);
+    for(let i=0;i<5;i++){c.lineTo(10-i*5,8+(i%2?-3:3)+Math.sin(t*6+i)*1.5);}c.lineTo(-10,8);c.closePath();c.fill();
+    c.fillStyle='#ffd34d';c.beginPath();c.ellipse(-3.5,-11,2,2.8,0,0,TAU);c.ellipse(3.5,-11,2,2.8,0,0,TAU);c.fill();
+    c.fillStyle='#4b5055';c.beginPath();c.ellipse(0,-4,3,2,0,0,TAU);c.fill();
+  }else if(type==='dragon'){
+    c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(0,22,34,9,0,0,TAU);c.fill();
+    const fl=Math.sin(t*4)*.25;
+    c.fillStyle='#8f2219';
+    c.save();c.translate(-4,-10);c.rotate(-.5-fl);c.beginPath();c.moveTo(0,0);c.lineTo(-30,-30);c.lineTo(-22,-6);c.lineTo(-34,-10);c.lineTo(-14,6);c.closePath();c.fill();c.restore();
+    c.fillStyle='#b8342a';c.beginPath();c.moveTo(-18,4);c.quadraticCurveTo(-44,6,-48,-8);c.quadraticCurveTo(-38,14,-14,12);c.fill();
+    c.beginPath();c.ellipse(0,4,24,15,0,0,TAU);c.fill();
+    c.fillStyle='#e9a23b';c.beginPath();c.ellipse(2,9,15,7,0,0,TAU);c.fill();
+    c.fillStyle='#b8342a';c.fillRect(-14,12,7,10);c.fillRect(8,12,7,10);
+    c.beginPath();c.moveTo(14,-4);c.quadraticCurveTo(22,-20,26,-22);c.lineTo(32,-16);c.quadraticCurveTo(26,-10,22,2);c.fill();
+    c.beginPath();c.ellipse(32,-22,11,7,.15,0,TAU);c.fill();
+    c.fillStyle='#f2d6a2';c.beginPath();c.moveTo(26,-28);c.lineTo(22,-38);c.lineTo(30,-29);c.fill();c.beginPath();c.moveTo(32,-29);c.lineTo(32,-39);c.lineTo(36,-28);c.fill();
+    c.fillStyle='#d24a3a';for(let i=0;i<5;i++){c.beginPath();c.moveTo(-14+i*7,-10);c.lineTo(-11+i*7,-16);c.lineTo(-8+i*7,-10);c.fill();}
+    if(alpha===-1){ // sleeping marker handled outside
+    }
+    c.fillStyle='#ffe08a';c.beginPath();c.arc(34,-24,2.2,0,TAU);c.fill();c.fillStyle='#000';c.fillRect(34.4,-25.4,1,2.8);
+    c.fillStyle='#3a0e0a';c.beginPath();c.arc(41,-19,1.2,0,TAU);c.fill();
+  }
+  c.restore();
+}
+function sprItem(c,kind,x,y,t){
+  c.save();c.translate(x,y+Math.sin(t*3)*1.5);
+  c.fillStyle='rgba(0,0,0,.22)';c.beginPath();c.ellipse(0,11,9,3,0,0,TAU);c.fill();
+  if(kind==='food'){c.fillStyle='#d23b30';c.beginPath();c.arc(-3,2,6,0,TAU);c.arc(3,2,6,0,TAU);c.fill();c.fillStyle='#ff8a7a';c.beginPath();c.arc(-4,0,2,0,TAU);c.fill();c.fillStyle='#5b3d22';c.fillRect(-.8,-8,1.6,5);c.fillStyle='#4f9a3a';c.beginPath();c.ellipse(4,-6,4,2,-.5,0,TAU);c.fill();}
+  else if(kind==='water'){c.fillStyle='#6b4a2a';c.fillRect(-2.5,-10,5,3);c.fillStyle='#4aa3d8';c.beginPath();c.roundRect(-6,-7,12,16,4);c.fill();c.fillStyle='#bfe6f6';c.fillRect(-4,-3,2.5,8);c.strokeStyle='#2a5f80';c.lineWidth=1;c.beginPath();c.roundRect(-6,-7,12,16,4);c.stroke();}
+  else if(kind==='shelter'){c.fillStyle='#d9a441';c.beginPath();c.moveTo(-14,9);c.lineTo(0,-13);c.lineTo(14,9);c.closePath();c.fill();c.fillStyle='#a8742a';c.beginPath();c.moveTo(0,-13);c.lineTo(14,9);c.lineTo(5,9);c.closePath();c.fill();c.fillStyle='#3a2a1e';c.beginPath();c.moveTo(-4,9);c.lineTo(0,-1);c.lineTo(4,9);c.fill();}
+  else if(kind==='medkit'){c.fillStyle='#f6f3ea';c.beginPath();c.roundRect(-9,-6,18,14,3);c.fill();c.strokeStyle='#8a2a24';c.lineWidth=1.2;c.stroke();c.fillStyle='#d23b30';c.fillRect(-2,-4,4,10);c.fillRect(-6,-1,12,4);c.fillStyle='#8a2a24';c.fillRect(-3,-9,6,3);}
+  c.restore();
+}
+function sprScroll(c,x,y,t){
+  c.save();c.translate(x,y+Math.sin(t*2.5)*2.5);
+  const gl=c.createRadialGradient(0,0,2,0,0,22);gl.addColorStop(0,'rgba(255,215,107,.55)');gl.addColorStop(1,'rgba(255,215,107,0)');c.fillStyle=gl;c.beginPath();c.arc(0,0,22,0,TAU);c.fill();
+  c.fillStyle='#f4e7c6';c.fillRect(-8,-6,16,12);c.fillStyle='#c9a35e';c.beginPath();c.ellipse(-8,0,2.5,7,0,0,TAU);c.ellipse(8,0,2.5,7,0,0,TAU);c.fill();
+  c.fillStyle='#b9731c';c.fillRect(-1.5,-6,3,12);c.fillStyle='#7a6a52';c.fillRect(-6,-3,4,1);c.fillRect(2,-3,4,1);c.fillRect(-6,1,4,1);c.fillRect(2,1,4,1);
+  c.restore();
+}
+function sprGate(c,g,t){
+  c.save();c.translate(g.x,g.y);
+  c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,14,22,5,0,0,TAU);c.fill();
+  c.fillStyle='#7d7a74';c.fillRect(-20,-22,8,36);c.fillRect(12,-22,8,36);c.beginPath();c.arc(0,-20,20,Math.PI,0);c.lineTo(12,-20);c.arc(0,-20,12,0,Math.PI,true);c.fill();
+  if(g.open){const gr=c.createRadialGradient(0,-4,2,0,-4,16);gr.addColorStop(0,'#fff6c0');gr.addColorStop(.5,'#ffc94d');gr.addColorStop(1,'#7b4fd0');c.fillStyle=gr;c.beginPath();c.ellipse(0,-4,11,18+Math.sin(t*4),0,0,TAU);c.fill();
+    for(let i=0;i<3;i++){const a=t*2+i*2.1;c.fillStyle='#fff';c.fillRect(Math.cos(a)*8-1,-4+Math.sin(a)*14-1,2,2);}}
+  else{c.fillStyle='#2b2622';c.fillRect(-12,-20,24,34);c.fillStyle='#9a958c';for(let i=-9;i<=9;i+=6)c.fillRect(i-1,-20,2,34);c.fillStyle='#e9a23b';c.fillRect(-4,-2,8,7);}
+  c.restore();
+}
+
+/* ---------------- draw world ---------------- */
+function camera(){
+  const mw=L.cols*TS, mh=L.rows*TS;
+  let x=mw<=W?(mw-W)/2:clamp(P.x-W/2,0,mw-W);
+  let y=mh<=H-44?(mh-(H-44))/2-44:clamp(P.y-(H+44)/2,-44,mh-H);
+  return {x,y};
+}
+function drawWorld(dt){
+  cx.setTransform(1,0,0,1,0,0);
+  cx.fillStyle='#0f181e';cx.fillRect(0,0,W,H);
+  if(!L)return;
+  const cam=camera();
+  let sx=0,sy=0;if(shake>0&&mode==='play'){sx=rnd(-4,4);sy=rnd(-4,4);}
+  cx.setTransform(1,0,0,1,-Math.round(cam.x)+sx,-Math.round(cam.y)+sy);
+  cx.drawImage(L.bg,0,0);
+  if(L.boss){ // lava shimmer
+    cx.fillStyle=`rgba(255,180,80,${.08+.06*Math.sin(tGlobal*3)})`;
+    for(let y=0;y<L.rows;y++)for(let x=0;x<L.cols;x++)if(L.g[y][x]===2)cx.fillRect(x*TS,y*TS,TS,TS);
+  }
+  if(L.gate)sprGate(cx,L.gate,tGlobal);
+  // y-sorted drawables
+  const list=[];
+  L.items.forEach(it=>list.push({y:it.y,f:()=>sprItem(cx,it.kind,it.x,it.y,tGlobal+it.bob)}));
+  L.scrolls.forEach(s=>{if(!s.got)list.push({y:s.y,f:()=>sprScroll(cx,s.x,s.y,tGlobal+s.bob)});});
+  L.enemies.forEach(e=>list.push({y:e.y,f:()=>{
+    sprEnemy(cx,e.type,e.x,e.y,1,e.t,e.face,e.flee>0?Math.max(0,e.flee):1);
+    if(mode==='play'&&!e.flee&&dist(e,P)<ETYPES[e.type].aggro*AGG.range&&P.inv<=0){cx.fillStyle='#ff6b5e';cx.font='bold 14px sans-serif';cx.textAlign='center';cx.fillText('!',e.x,e.y-26);}
+  }}));
+  if(L.dragon){const d=L.dragon;list.push({y:d.y,f:()=>{sprEnemy(cx,'dragon',d.x,d.y,1,tGlobal*.3,-1);if(!d.awake){cx.fillStyle='#f4e7c6';cx.font='bold 16px "Pixelify Sans",sans-serif';cx.textAlign='left';const z=(tGlobal*.8)%1;cx.globalAlpha=1-z;cx.fillText('z',d.x-36-z*10,d.y-40-z*16);cx.fillText('Z',d.x-46-z*6,d.y-56-z*12);cx.globalAlpha=1;}}});}
+  list.push({y:P.y,f:()=>{
+    if(P.inv>0&&Math.floor(tGlobal*12)%2&&mode==='play')return;
+    sprPlayer(cx,P.x,P.y,1,P.t,P.face,P.moving);
+  }});
+  list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+  // guidance arrow
+  const tgt=target();
+  if(tgt&&mode!=='menu'){
+    const a=Math.atan2(tgt.y-P.y,tgt.x-P.x), dd=dist(tgt,P);
+    if(dd>60){cx.save();cx.translate(P.x+Math.cos(a)*30,P.y-4+Math.sin(a)*30);cx.rotate(a);cx.globalAlpha=.6+.3*Math.sin(tGlobal*5);
+      cx.fillStyle=tgt.kind==='gate'?'#c79bff':tgt.kind==='dragon'?'#ff7a5a':'#ffd36b';cx.beginPath();cx.moveTo(8,0);cx.lineTo(-4,-6);cx.lineTo(-1,0);cx.lineTo(-4,6);cx.closePath();cx.fill();cx.restore();}
+  }
+  // particles & floaters
+  particles.forEach(p=>{cx.globalAlpha=Math.max(0,p.life/.8);cx.fillStyle=p.color;cx.fillRect(p.x-2,p.y-2,4,4);});cx.globalAlpha=1;
+  floaters.forEach(f=>{cx.globalAlpha=Math.min(1,f.life);cx.fillStyle=f.color;cx.font='bold 16px "Pixelify Sans",sans-serif';cx.textAlign='center';cx.fillText(f.txt,f.x,f.y-(1.2-f.life)*30);});cx.globalAlpha=1;
+  // joystick
+  cx.setTransform(1,0,0,1,0,0);
+  if(joy.on){cx.globalAlpha=.35;cx.fillStyle='#f4e7c6';cx.beginPath();cx.arc(joy.ox,joy.oy,50,0,TAU);cx.fill();cx.globalAlpha=.7;cx.beginPath();cx.arc(joy.ox+joy.dx*50,joy.oy+joy.dy*50,20,0,TAU);cx.fill();cx.globalAlpha=1;}
+  if(G&&mode!=='menu')drawHUD();
+}
+function target(){
+  if(!L)return null;
+  if(L.dragon)return {x:L.dragon.x,y:L.dragon.y,kind:'dragon'};
+  if(L.gate&&L.gate.open)return {x:L.gate.x,y:L.gate.y,kind:'gate'};
+  let best=null,bd=1e9;for(const s of L.scrolls){if(s.got)continue;const d=dist(s,P);if(d<bd){bd=d;best={x:s.x,y:s.y,kind:'scroll'};}}
+  return best;
+}
+function drawHUD(){
+  cx.fillStyle='rgba(15,24,30,.82)';cx.fillRect(0,0,W,44);
+  cx.fillStyle='#e9a23b';cx.fillRect(0,44,W,2);
+  // health
+  cx.font='bold 15px "Pixelify Sans",sans-serif';cx.textAlign='left';cx.textBaseline='middle';
+  cx.fillStyle='#f4e7c6';cx.fillText('Health',14,22);
+  const hx=76,hw=170;cx.fillStyle='#3b2b28';cx.fillRect(hx,13,hw,18);
+  const fr=G.hp/G.maxHp;cx.fillStyle=fr>.5?'#3f9d6a':fr>.25?'#e9a23b':'#c9483f';cx.fillRect(hx,13,hw*fr,18);
+  cx.strokeStyle='#f4e7c6';cx.lineWidth=2;cx.strokeRect(hx,13,hw,18);
+  cx.fillStyle='#fff';cx.textAlign='center';cx.fillText(`${G.hp} / ${G.maxHp}`,hx+hw/2,22.5);
+  cx.textAlign='left';cx.fillStyle='#f4e7c6';
+  cx.fillText(L.def.name,272,22);
+  if(!L.boss){cx.fillText('Scrolls',450,22);for(let i=0;i<3;i++){const got=i<L.scrolls.filter(s=>s.got).length;cx.fillStyle=got?'#ffd36b':'#55606a';cx.fillRect(512+i*20,14,14,16);cx.fillStyle=got?'#b9731c':'#3a434b';cx.fillRect(517+i*20,14,4,16);}}
+  else{cx.fillText('Find and defeat the dragon',450,22);}
+  cx.fillStyle='#f4e7c6';cx.textAlign='right';
+  const s=G.stat,R=s[3].r+s[4].r,N=s[3].n+s[4].n;
+  cx.fillText(`Score ${G.score}`,W-150,22);
+  cx.fillText(`Correct ${pct(R,N)}`,W-14,22);
+  cx.textBaseline='alphabetic';
+  // toasts
+  let ty=78;
+  toasts.forEach(t=>{cx.globalAlpha=Math.min(1,t.life);cx.font='bold 16px "Nunito",sans-serif';cx.textAlign='center';const w=cx.measureText(t.msg).width+28;
+    cx.fillStyle='rgba(15,24,30,.85)';cx.beginPath();cx.roundRect(W/2-w/2,ty-20,w,30,8);cx.fill();cx.fillStyle=t.color;cx.fillText(t.msg,W/2,ty);ty+=36;});
+  cx.globalAlpha=1;
+}
+
+/* ---------------- draw fight ---------------- */
+function drawFight(dt){
+  if(!F)return;
+  updateFight(dt);
+  if(!F)return;
+  const c=fx, d=L.def;
+  c.setTransform(1,0,0,1,0,0);
+  const sky=c.createLinearGradient(0,0,0,280);
+  if(F.boss){sky.addColorStop(0,'#2a1414');sky.addColorStop(1,'#5a2a1c');}else{sky.addColorStop(0,'#1c2f3a');sky.addColorStop(1,'#35505c');}
+  c.fillStyle=sky;c.fillRect(0,0,640,280);
+  c.fillStyle=d.ground[0];c.fillRect(0,215,640,65);c.fillStyle=d.tuft;for(let i=0;i<40;i++)c.fillRect((i*53)%640,220+(i*17)%55,3,5);
+  const reach=F.boss?BOSS_PREACH:PREACH, inRange=F.ex-F.px<=reach;
+  // enemy
+  const wind=F.eState==='windup'&&fightLive();
+  const lungeE=Math.sin(F.eSwing*Math.PI)*(F.boss?30:24);
+  const ex=F.ex-lungeE+(wind?Math.sin(tGlobal*60)*2:0);
+  c.save();if(F.hitFlash.e>0&&Math.floor(F.hitFlash.e*20)%2)c.globalAlpha=.4;
+  if(F.res==='win')c.globalAlpha=.25;
+  sprEnemy(c,F.enemy.type,ex,F.boss?185:190,F.boss?1.9:3,tGlobal,-1);c.restore();
+  if(F.boss&&F.phase!=='window'&&!F.done){c.save();c.globalAlpha=.55+.1*Math.sin(tGlobal*3);for(let i=0;i<14;i++){const a=i/14*TAU+tGlobal*.6;c.fillStyle=i%2?'#6f6a66':'#8a8580';c.beginPath();c.arc(F.ex+Math.cos(a)*80,150+Math.sin(a)*60,22,0,TAU);c.fill();}c.restore();}
+  if(wind){c.fillStyle='#ff5a4e';c.font='bold 34px "Pixelify Sans",sans-serif';c.textAlign='center';c.fillText('!',F.ex,F.boss?70:95);
+    const fr=clamp(F.eT/(windupTime()*(F.boss?1.25:1.4)),0,1);c.fillStyle='rgba(255,90,78,.8)';c.fillRect(F.ex-30,F.boss?78:103,60*fr,5);}
+  if(F.fire>0){c.save();c.globalAlpha=Math.min(1,F.fire*1.5);for(let i=0;i<30;i++){const k=i/30;const fx2=F.ex-50-k*460, fy=150+Math.sin(i+tGlobal*20)*16*k;c.fillStyle=i%3?'#ff9a3a':'#ffd36b';c.beginPath();c.arc(fx2,fy,6+k*20,0,TAU);c.fill();}c.restore();}
+  // player
+  c.save();if(F.hitFlash.p>0&&Math.floor(F.hitFlash.p*20)%2)c.globalAlpha=.4;if(F.res==='lose')c.globalAlpha=.3;
+  sprPlayer(c,F.px+Math.sin(F.pSwing*Math.PI)*14,195,3,tGlobal,1,fightLive()&&(keys.l||keys.r||hold.l||hold.r),F.pSwing);c.restore();
+  if(fightLive()){c.font='bold 13px "Nunito",sans-serif';c.textAlign='center';c.fillStyle=inRange?'#9fe0b5':'#f4e7c6';c.fillText(inRange?'IN RANGE':'move closer →',F.px,250);}
+  // health bars
+  const bar=(x,label,hp,max,col,alignRight)=>{
+    c.font='bold 15px "Pixelify Sans",sans-serif';c.fillStyle='#f4e7c6';c.textAlign=alignRight?'right':'left';c.fillText(label,alignRight?x+220:x,22);
+    c.fillStyle='#2a1d1a';c.fillRect(x,30,220,16);c.fillStyle=col;const w=220*hp/max;c.fillRect(alignRight?x+220-w:x,30,w,16);c.strokeStyle='#f4e7c6';c.lineWidth=2;c.strokeRect(x,30,220,16);
+    c.fillStyle='#fff';c.textAlign='center';c.font='bold 12px "Nunito",sans-serif';c.fillText(`${hp} / ${max}`,x+110,42);
+  };
+  bar(20,G.name||'You',G.hp,G.maxHp,'#3f9d6a',false);
+  bar(400,F.def.name,F.hp,F.max,'#c9483f',true);
+  if(F.boss&&F.phase==='window'&&!F.done){c.fillStyle='#ffd36b';c.fillRect(220,58,200*clamp(F.window/G.diff.window,0,1),8);c.strokeStyle='#f4e7c6';c.lineWidth=1;c.strokeRect(220,58,200,8);
+    c.font='bold 12px "Nunito",sans-serif';c.textAlign='center';c.fillStyle='#ffd36b';c.fillText('Shield down!',320,52);}
+  fFloats.forEach(f=>{f.life-=dt;c.globalAlpha=Math.max(0,Math.min(1,f.life));c.fillStyle=f.color;c.font='bold 26px "Pixelify Sans",sans-serif';c.textAlign='center';c.fillText(f.txt,f.x,f.y-(1.1-f.life)*30);});
+  fFloats=fFloats.filter(f=>f.life>0);c.globalAlpha=1;
+}
+
+/* ---------------- loop ---------------- */
+function frame(now){
+  const dt=Math.min(.05,(now-tLast)/1000);tLast=now;tGlobal+=dt;
+  if(mode==='play'&&L&&G)update(dt);
+  if(mode==='menu'&&L){ // idle wander behind the menu
+    for(const e of L.enemies){e.t+=dt;e.turn-=dt;if(e.turn<=0){e.dir=Math.random()*TAU;e.turn=rnd(1,3);}const dx=Math.cos(e.dir)*40*dt,dy=Math.sin(e.dir)*40*dt;if(moveBody(e,dx,dy,9))e.dir=Math.random()*TAU;if(Math.abs(dx)>.01)e.face=dx>0?1:-1;}
+  }
+  shake=Math.max(0,shake-dt);
+  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.92;p.vy*=.92;p.life-=dt;});particles=particles.filter(p=>p.life>0);
+  floaters.forEach(f=>f.life-=dt);floaters=floaters.filter(f=>f.life>0);
+  if(mode==='play')toasts.forEach(t=>t.life-=dt);toasts=toasts.filter(t=>t.life>0);
+  drawWorld(dt);
+  if(F)drawFight(mode==='fight'?dt:0);
+  requestAnimationFrame(frame);
+}
+L=genLand(0);P.x=L.start.x+200;P.y=L.start.y+120;
+requestAnimationFrame(frame);
+window.__aeq={get mode(){return mode;},get G(){return G;},get L(){return L;},P,BANK:()=>BANK};
+})();
+</script>
+
+</body>
+</html>

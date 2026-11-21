@@ -106,7 +106,7 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
 <body>
 
 <div class="bar">
-  <b>Atoms &amp; Earth Quest</b>
+  <b id="barTitle">Atoms &amp; Earth Quest</b>
   <span class="keys"><span><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> move</span><span><kbd>1</kbd>–<kbd>4</kbd> or type to answer</span><span><kbd>Space</kbd> strike in fights</span><span><kbd>P</kbd> pause</span>
   <button class="iconbtn" id="repBtn" type="button">Report card (R)</button><button class="iconbtn" id="muteBtn" type="button">Sound: on</button></span>
 </div>
@@ -115,22 +115,18 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
 <!-- MENU -->
 <div class="overlay" id="menu">
   <div class="card wide">
-    <div class="eyebrow">Year 9 Science · Chapters 3 &amp; 4</div>
-    <h1>Atoms &amp; Earth Quest</h1>
-    <p>Cross three wild lands and face the Ember Dragon. Collect three Knowledge Scrolls in each land to open its gate. If a creature catches you, answer its question correctly and it runs away. Answer wrongly and you'll have to fight it.</p>
+    <div class="eyebrow" id="mEyebrow">Year 9 Science · Chapters 3 &amp; 4</div>
+    <h1 id="mTitle">Atoms &amp; Earth Quest</h1>
+    <p id="mIntro">Cross three wild lands and face the Ember Dragon. Collect three Knowledge Scrolls in each land to open its gate. If a creature catches you, answer its question correctly and it runs away. Answer wrongly and you'll have to fight it.</p>
     <div class="how">
       <div><b>Caught by a creature?</b>Right answer: it flees. Wrong answer: it strikes first and you fight.</div>
       <div><b>Fighting</b>Move in with <kbd>→</kbd>, strike with <kbd>Space</kbd>, and step back with <kbd>←</kbd> when the enemy winds up to attack.</div>
       <div><b>Supplies</b>Answer the question to use the item. Most heal you, but some are secretly poisoned. Answer wrongly and you leave it behind.</div>
-      <div><b>Knowledge Scrolls</b>Harder questions. Get one wrong and the wind blows the scroll somewhere else.</div>
+      <div><b id="mScrollHead">Knowledge Scrolls</b>Harder questions. Get one wrong and the wind blows the scroll somewhere else.</div>
     </div>
     <div class="field"><span class="lbl">Your name (shown on the results screen)</span><input type="text" id="pname" maxlength="30" placeholder="e.g. Alex" autocomplete="off"></div>
-    <div class="field"><span class="lbl">Questions from</span>
-      <div class="seg" id="chSeg">
-        <label><input type="radio" name="ch" value="both" id="chBoth" checked><span>Chapters 3 + 4</span></label>
-        <label><input type="radio" name="ch" value="3" id="ch3"><span>Chapter 3: Materials</span></label>
-        <label><input type="radio" name="ch" value="4" id="ch4"><span>Chapter 4: Sustainability</span></label>
-      </div></div>
+    <div class="field" id="chField"><span class="lbl">Questions from</span>
+      <div class="seg" id="chSeg"></div></div>
     <div class="field"><span class="lbl">Difficulty</span>
       <div class="seg" id="dSeg">
         <label><input type="radio" name="diff" value="0" id="d0"><span>Explorer (gentle)</span></label>
@@ -232,9 +228,48 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
 
 <script>
 /* ==========================================================================
+   GAME SETTINGS: change these to tailor the game to a year group or topic.
+   (Also change the <title> line at the very top of this file.)
+   ========================================================================== */
+const GAME = {
+  title: 'Atoms & Earth Quest',
+  eyebrow: 'Year 9 Science · Chapters 3 & 4',          // small line above the title on the start screen
+  // One or two chapters/modules. "id" must match the first column of the questions below.
+  // "label" is shown on question badges and the report card; "menu" is the button text on the start screen.
+  chapters: [
+    { id: '3', label: 'Chapter 3', menu: 'Chapter 3: Materials' },
+    { id: '4', label: 'Chapter 4', menu: 'Chapter 4: Sustainability' }
+  ],
+  saveKey: 'aeq',
+  defaultDifficulty: 1,                                  // 0 Explorer, 1 Adventurer, 2 Legend, 3 Nightmare
+  // Share of each question type (multiple choice, vocabulary, numerical). Scrolls, the boss and harder settings lean towards typed answers.
+  mix: { mc: 0.6, v: 0.2, n: 0.2 },                                        // make this different for each version (e.g. 'y7quest') so saved settings don't mix
+  scrollName: 'Knowledge Scroll',
+  // Creature names and attack verbs. The pictures stay the same, so choose names that suit the picture.
+  creatures: {
+    goblin: { name: 'Goblin of Ignorance',  verb: 'swings its club' },               // green goblin with a club
+    slime:  { name: 'Unstable Atom',        verb: 'zaps you with a stray electron' }, // purple blob with orbiting electrons
+    virus:  { name: 'Misinformation Virus', verb: 'spreads a rumour at you' },        // red spiky virus
+    raptor: { name: 'Raptor',               verb: 'snaps its teeth' },                // orange dinosaur
+    wraith: { name: 'Smog Wraith',          verb: 'chokes you with smog' },           // grey smoky ghost
+    dragon: { name: 'Ember Dragon', short: 'dragon', verb: 'breathes fire' }          // the final boss
+  },
+  // The four lands, in order (woods, dry plains, snow, boss lair). Only names and descriptions can change here.
+  lands: [
+    { name: 'Whispering Woods', blurb: 'Tall gum trees and quiet creeks. Goblins of Ignorance and Unstable Atoms wander the paths.' },
+    { name: 'Scorched Plains',  blurb: 'Dry grass and hot winds. Misinformation Viruses spread fast here, and the Raptors are hungry.' },
+    { name: 'Frozen Peaks',     blurb: 'Shrinking snowfields and melting ice. Smog Wraiths drift down from the valleys.' },
+    { name: "Dragon's Lair",    blurb: 'The air smells of smoke. The Ember Dragon sleeps on a pile of old exam papers. Heal up, then wake it if you dare.' }
+  ]
+};
+
+/* ==========================================================================
    QUESTION BANK
-   One question per line:
-   chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation
+   One question per line. Three kinds (the "chapter" column must match a chapter id in GAME.chapters):
+   Multiple choice: chapter | difficulty 1-4 | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation
+   Vocabulary:      V | chapter | difficulty | definition | answer;other accepted answer | explanation
+   Numerical:       N | chapter | difficulty | question | answer | allowed error (0 = exact) | unit | explanation
+   Never use the backtick character or a dollar sign followed by { anywhere in the questions.
    ========================================================================== */
 const DEFAULT_BANK = `# MULTIPLE CHOICE: chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | one-line explanation
 3|1|Which particle in an atom carries a negative charge?|Electron|Proton|Neutron|Nucleus|Electrons are negative, protons are positive and neutrons have no charge.
@@ -570,9 +605,24 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 
+/* ---------------- settings ---------------- */
+const CH_IDS=GAME.chapters.map(c=>String(c.id));
+const chInfo=id=>{const i=CH_IDS.indexOf(String(id));return {i,label:i>=0?GAME.chapters[i].label:'Chapter '+id,cls:i===1?'c4':'c3'};};
+const BOSS=GAME.creatures.dragon;
+const blankStats=()=>Object.fromEntries(CH_IDS.map(c=>[c,{r:0,n:0}]));
+document.title=GAME.title;
+$('barTitle').textContent=GAME.title;$('mTitle').textContent=GAME.title;$('mEyebrow').textContent=GAME.eyebrow;
+$('mIntro').textContent=`Cross three wild lands and face the ${BOSS.name}. Collect three ${GAME.scrollName}s in each land to open its gate. If a creature catches you, answer its question correctly and it runs away. Answer wrongly and you'll have to fight it.`;
+$('mScrollHead').textContent=GAME.scrollName+'s';
+{const dd=document.getElementById('d'+(GAME.defaultDifficulty??1));if(dd)dd.checked=true;}
+(function(){const seg=$('chSeg');seg.innerHTML='';
+  if(GAME.chapters.length<2){$('chField').hidden=true;return;}
+  const opts=[{v:'all',t:GAME.chapters.map(c=>c.label).join(' + ')}].concat(GAME.chapters.map(c=>({v:String(c.id),t:c.menu||c.label})));
+  opts.forEach((o,i)=>{const l=document.createElement('label');l.innerHTML='<input type="radio" name="ch"><span></span>';l.firstChild.value=o.v;l.firstChild.id='ch_'+i;if(i===0)l.firstChild.checked=true;l.lastChild.textContent=o.t;seg.appendChild(l);});})();
+
 /* ---------------- question bank ---------------- */
-const BANK_KEY='aeq-bank-v1';
-function parseNum(x){if(x==null)return null;const t=String(x).trim().replace(/[\u2212\u2013]/g,'-').replace(/[,\s]/g,'');return /^-?(\d+\.?\d*|\.\d+)$/.test(t)?parseFloat(t):null;}
+const BANK_KEY=GAME.saveKey+'-bank-v1';
+function parseNum(x){if(x==null)return null;let t=String(x).trim().replace(/[\u2212\u2013]/g,'-').replace(/[,\s]/g,'');t=t.replace(/(?:[x×*]10\^?|E)(-?\d+)$/i,'e$1');return /^-?(\d+\.?\d*|\.\d+)(e-?\d+)?$/i.test(t)?parseFloat(t):null;}
 function normWord(x){return String(x).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\-\u2010-\u2015'’‘().,]/g,'');}
 function vocabMatch(typed,ans){const t=normWord(typed);if(!t)return false;return ans.some(a=>{const n=normWord(a);return t===n||t===n+'s'||t+'s'===n;});}
 function parseBank(text){
@@ -582,8 +632,8 @@ function parseBank(text){
     const p=t.split('|').map(s=>s.trim());
     const kind=p[0].toUpperCase();
     if(kind==='V'||kind==='N'){
-      const ch=parseInt(p[1],10), d=parseInt(p[2],10);
-      if(ch!==3&&ch!==4){errs.push(`Line ${i+1}: chapter must be 3 or 4`);return;}
+      const ch=p[1], d=parseInt(p[2],10);
+      if(!CH_IDS.includes(ch)){errs.push(`Line ${i+1}: chapter must be one of: ${CH_IDS.join(', ')}`);return;}
       if(!(d>=1&&d<=4)){errs.push(`Line ${i+1}: difficulty must be 1, 2, 3 or 4`);return;}
       if(kind==='V'){
         if(p.length<6||!p[3]||!p[4]){errs.push(`Line ${i+1}: vocabulary lines need V | chapter | difficulty | definition | answer | explanation`);return;}
@@ -597,8 +647,8 @@ function parseBank(text){
       return;
     }
     if(p.length<6){errs.push(`Line ${i+1}: needs at least chapter | difficulty | question | correct | one wrong answer | explanation`);return;}
-    const ch=parseInt(p[0],10), d=parseInt(p[1],10);
-    if(ch!==3&&ch!==4){errs.push(`Line ${i+1}: chapter must be 3 or 4`);return;}
+    const ch=p[0], d=parseInt(p[1],10);
+    if(!CH_IDS.includes(ch)){errs.push(`Line ${i+1}: chapter must be one of: ${CH_IDS.join(', ')}`);return;}
     if(!(d>=1&&d<=4)){errs.push(`Line ${i+1}: difficulty must be 1, 2, 3 or 4`);return;}
     const e=p[p.length-1], answers=p.slice(3,p.length-1).filter(Boolean);
     if(answers.length<2){errs.push(`Line ${i+1}: needs a correct answer and at least one wrong answer`);return;}
@@ -609,11 +659,11 @@ function parseBank(text){
 let bankText=store.get(BANK_KEY)||DEFAULT_BANK;
 let BANK=parseBank(bankText).qs;
 if(!BANK.length){bankText=DEFAULT_BANK;BANK=parseBank(DEFAULT_BANK).qs;}
-function bankSummary(qs){const c=(t,ch)=>qs.filter(q=>q.type===t&&q.ch===ch).length;return `${qs.length} questions loaded: ${c('mc',3)+c('mc',4)} multiple choice, ${c('v',3)+c('v',4)} vocabulary and ${c('n',3)+c('n',4)} numerical (Chapter 3: ${qs.filter(q=>q.ch===3).length}, Chapter 4: ${qs.filter(q=>q.ch===4).length})${store.get(BANK_KEY)?'. You are using your edited bank':''}.`;}
+function bankSummary(qs){const c=t=>qs.filter(q=>q.type===t).length;return `${qs.length} questions loaded: ${c('mc')} multiple choice, ${c('v')} vocabulary and ${c('n')} numerical (`+GAME.chapters.map(ch=>`${ch.label}: ${qs.filter(q=>q.ch===String(ch.id)).length}`).join(', ')+`)${store.get(BANK_KEY)?'. You are using your edited bank':''}.`;}
 $('bankInfo').textContent=bankSummary(BANK);
 
 /* ---------------- sound ---------------- */
-let actx=null, muted=store.get('aeq-mute')==='1';
+let actx=null, muted=store.get(GAME.saveKey+'-mute')==='1';
 $('muteBtn').textContent='Sound: '+(muted?'off':'on');
 function tone(f,dur,type='square',vol=.06,slide=0,delay=0){
   if(muted||!actx) return;
@@ -634,7 +684,7 @@ const sfx={
   gate(){[392,523,659,784].forEach((f,i)=>tone(f,.15,'triangle',.06,0,i*.1));},
   fire(){tone(90,.5,'sawtooth',.08,60);}
 };
-$('muteBtn').onclick=()=>{muted=!muted;store.set('aeq-mute',muted?'1':'0');$('muteBtn').textContent='Sound: '+(muted?'off':'on');};
+$('muteBtn').onclick=()=>{muted=!muted;store.set(GAME.saveKey+'-mute',muted?'1':'0');$('muteBtn').textContent='Sound: '+(muted?'off':'on');};
 
 /* ---------------- world definitions ---------------- */
 const ETYPES={
@@ -645,6 +695,7 @@ const ETYPES={
   wraith:{name:'Smog Wraith',hp:4,dmg:2,speed:56,chase:100,aggro:220,verb:'chokes you with smog'},
   dragon:{name:'Ember Dragon',hp:10,dmg:2,speed:0,chase:0,aggro:0,verb:'breathes fire'}
 };
+for(const k in GAME.creatures){if(ETYPES[k]){ETYPES[k].name=GAME.creatures[k].name||ETYPES[k].name;ETYPES[k].verb=GAME.creatures[k].verb||ETYPES[k].verb;}}
 const LANDS=[
   {name:'Whispering Woods',ground:['#4d8a3f','#548f44'],tuft:'#3d7232',tree:['#2c5a2a','#3b7034'],trunk:'#5b3d22',rock:['#8c8f86','#6f726a'],water:['#2f6d97','#3c80aa'],
    enemies:{goblin:4,slime:3},qd:[1,2],blurb:'Tall gum trees and quiet creeks. Goblins of Ignorance and Unstable Atoms wander the paths.'},
@@ -656,6 +707,7 @@ const LANDS=[
    enemies:{},qd:[2,3],boss:true,blurb:'The air smells of smoke. The Ember Dragon sleeps on a pile of old exam papers. Heal up, then wake it if you dare.'}
 ];
 const AGG={range:1.8,speed:1.25,hunt:650}; // enemy aggression: chase range, chase speed, distance at which wandering drifts towards the player
+LANDS.forEach((l,i)=>{const g=GAME.lands[i];if(g){l.name=g.name||l.name;l.blurb=g.blurb||l.blurb;}});
 const ITEMS={
   food:{name:'Wild apple',heal:2,qd:[1,1],verb:'You found a wild apple!'},
   water:{name:'Water flask',heal:2,qd:[1,2],verb:'You found a flask of clean water!'},
@@ -683,12 +735,12 @@ let toasts=[], particles=[], floaters=[];
 let shake=0;
 
 function newRun(){
-  const chv=document.querySelector('input[name=ch]:checked').value;
+  const chEl=document.querySelector('input[name=ch]:checked'), chv=chEl?chEl.value:'all';
   const dv=+document.querySelector('input[name=diff]:checked').value;
-  G={name:$('pname').value.trim(),chapters:chv==='both'?[3,4]:[+chv],diff:DIFFS[dv],diffIdx:dv,land:0,
+  G={name:$('pname').value.trim(),chapters:chv==='all'?CH_IDS.slice():[chv],diff:DIFFS[dv],diffIdx:dv,land:0,
      hp:DIFFS[dv].hp,maxHp:DIFFS[dv].hp,score:0,used:new Set(),
-     stat:{3:{r:0,n:0},4:{r:0,n:0}},rep:{mc:{3:{r:0,n:0},4:{r:0,n:0}},v:{3:{r:0,n:0},4:{r:0,n:0}},n:{3:{r:0,n:0},4:{r:0,n:0}}},missed:[],outsmarted:0,poisoned:0,fightsWon:0,itemsGained:0,itemsLost:0,scrolls:0,
-     start:performance.now(),won:false,lastCh:4};
+     stat:blankStats(),rep:{mc:blankStats(),v:blankStats(),n:blankStats()},missed:[],outsmarted:0,poisoned:0,fightsWon:0,itemsGained:0,itemsLost:0,scrolls:0,
+     start:performance.now(),won:false,lastCh:null};
 }
 
 /* ---------------- map generation ---------------- */
@@ -802,7 +854,7 @@ function startLand(idx){
   $('lvEyebrow').textContent=`Land ${idx+1} of ${LANDS.length}`;
   $('lvName').textContent=L.def.name;
   $('lvBlurb').textContent=L.def.blurb;
-  $('lvGoal').textContent=L.boss?'Goal: defeat the Ember Dragon. Each correct answer lets you strike; each wrong answer lets it breathe fire.':'Goal: find 3 Knowledge Scrolls to open the gate, then walk through it. The arrow near you points to the nearest scroll.';
+  $('lvGoal').textContent=L.boss?`Goal: defeat the ${BOSS.name}. A correct answer drops its shield so you can strike; a wrong answer lets it attack.`:`Goal: find 3 ${GAME.scrollName}s to open the gate, then walk through it. The arrow near you points to the nearest scroll.`;
   show('levelCard');mode='level';
 }
 function show(id){$(id).hidden=false;}
@@ -814,7 +866,8 @@ function floatText(x,y,txt,color){floaters.push({x,y,txt,color,life:1.2});}
 /* ---------------- question picking ---------------- */
 function pickType(boost){
   const up=(G.diff.qUp?0.1:0)+(boost||0);
-  const w={mc:Math.max(.2,.6-2*up),v:.2+up,n:.2+up}, r=Math.random()*(w.mc+w.v+w.n);
+  const m=GAME.mix||{mc:.6,v:.2,n:.2}, has=t=>BANK.some(q=>q.type===t);
+  const w={mc:has('mc')?Math.max(.2*m.mc/.6,m.mc-2*up):0,v:has('v')&&m.v>0?m.v+up:0,n:has('n')&&m.n>0?m.n+up:0}, r=Math.random()*(w.mc+w.v+w.n||1);
   return r<w.mc?'mc':r<w.mc+w.v?'v':'n';
 }
 function pickQuestion(minD,maxD,boost){
@@ -826,7 +879,7 @@ function pickQuestion(minD,maxD,boost){
   let cand=unused;
   const ct=cand.filter(q=>q.type===type); if(ct.length)cand=ct;
   if(G.chapters.length>1){ // alternate chapters so both get equal time
-    const want=G.lastCh===3?4:3; const c2=cand.filter(q=>q.ch===want); if(c2.length)cand=c2;
+    const want=G.chapters[(G.chapters.indexOf(G.lastCh)+1)%G.chapters.length]; const c2=cand.filter(q=>q.ch===want); if(c2.length)cand=c2;
   }
   const c3=cand.filter(q=>q.d>=minD&&q.d<=maxD); if(c3.length)cand=c3;
   const q=pick(cand);G.used.add(q.id);G.lastCh=q.ch;return q;
@@ -842,7 +895,7 @@ function askQuestion(opts,cb){
   mode='question';
   $('qTitle').textContent=opts.title;
   $('qStake').textContent=opts.stake;
-  const b=$('qBadge');b.textContent=q.ch===3?'Chapter 3':'Chapter 4';b.className='badge '+(q.ch===3?'c3':'c4');
+  const b=$('qBadge'),ci=chInfo(q.ch);b.textContent=ci.label;b.className='badge '+ci.cls;
   $('qStars').textContent='★'.repeat(q.d)+'☆'.repeat(Math.max(0,3-q.d));
   $('qStars').setAttribute('aria-label',`Difficulty ${q.d}`);
   $('qText').textContent=q.type==='v'?'Type the key term that matches this definition:':q.q;
@@ -931,7 +984,7 @@ function encounterItem(it){
   });
 }
 function encounterScroll(s){
-  askQuestion({...qRange(2,3),boost:.1,title:'A Knowledge Scroll!',stake:'Answer correctly to claim it. Answer wrongly and the wind carries it away.'},ok=>{
+  askQuestion({...qRange(2,3),boost:.1,title:`A ${GAME.scrollName}!`,stake:'Answer correctly to claim it. Answer wrongly and the wind carries it away.'},ok=>{
     if(ok){s.got=true;G.scrolls++;G.score+=100;sfx.pick();burst(s.x,s.y,'#ffd36b',22);
       const left=L.scrolls.filter(x=>!x.got).length;
       if(left===0){L.gate.open=true;sfx.gate();toast('All 3 scrolls found! The gate is open. Follow the arrow.','#ffd36b');}
@@ -954,10 +1007,10 @@ function startFight(enemy,enemyFirst){
      px:boss?140:(enemyFirst?300:170),ex:boss?500:(enemyFirst?385:480),
      pCd:0,pSwing:0,eState:'approach',eT:0,eSwing:0,hitFlash:{p:0,e:0},fire:0,phase:boss?'intro':'duel',window:0};
   if(enemyFirst){F.eState='windup';F.eT=windupTime()*1.4;}
-  $('fTitle').textContent=boss?'Boss battle: the Ember Dragon':`Fight: ${def.name}`;
+  $('fTitle').textContent=boss?`Boss battle: the ${BOSS.name}`:`Fight: ${def.name}`;
   $('fCont').hidden=true;$('fControls').hidden=false;
   show('fightBox');mode='fight';
-  if(boss){log('The Ember Dragon wakes up, wrapped in a shield of smoke! Answer its questions to break the shield.');setTimeout(bossQuestion,1800);}
+  if(boss){log(`The ${BOSS.name} wakes up, wrapped in a shield of smoke! Answer its questions to break the shield.`);setTimeout(bossQuestion,1800);}
   else if(enemyFirst)log(`The ${def.name} is winding up to attack! Step back with ← to dodge, then move in with → and strike with Space.`);
   else log('Move in with →, strike with Space, and step back with ← when it winds up to attack.');
 }
@@ -977,7 +1030,7 @@ function updateFight(dt){
   const ix=((keys.r||hold.r)?1:0)-((keys.l||hold.l)?1:0);
   F.px=clamp(F.px+ix*210*dt,40,F.ex-gap);
   F.pCd=Math.max(0,F.pCd-dt);
-  if(F.boss){F.window-=dt;if(F.window<=0){F.phase='wait';F.eState='approach';log('The smoke shield closes around the dragon again...');setTimeout(bossQuestion,900);return;}}
+  if(F.boss){F.window-=dt;if(F.window<=0){F.phase='wait';F.eState='approach';log(`The smoke shield closes around the ${BOSS.short} again...`);setTimeout(bossQuestion,900);return;}}
   const reach=REACH[F.enemy.type], d=F.ex-F.px;
   if(F.eState==='approach'){
     if(!F.boss&&d>reach-18)F.ex=Math.max(F.px+gap,F.ex-ETYPES[F.enemy.type].chase*.9*G.diff.speedMul*dt);
@@ -986,7 +1039,7 @@ function updateFight(dt){
     F.eT-=dt;
     if(F.eT<=0){
       F.eSwing=1;F.eState='recover';F.eT=rnd(.7,1.2);
-      if(F.ex-F.px<=reach+6)hurtPlayer(F.boss?G.diff.claw:F.def.dmg,F.boss?'The dragon slashes with its claws!':`The ${F.def.name} ${F.def.verb}!`);
+      if(F.ex-F.px<=reach+6)hurtPlayer(F.boss?G.diff.claw:F.def.dmg,F.boss?`The ${BOSS.short} slashes with its claws!`:`The ${F.def.name} ${F.def.verb}!`);
       else{sfx.miss();fFloat(F.px,90,'Dodged!','#9fe0b5');log(`You stepped back and dodged the ${F.def.name}! Now move in and strike.`);}
     }
   }else if(F.eState==='recover'){
@@ -1010,17 +1063,17 @@ function strike(){
 function bossQuestion(){
   if(!F||F.done)return;
   F.phase='question';
-  askQuestion({...qRange(2,3),boost:.1,title:'The Ember Dragon demands an answer!',stake:`Correct: the smoke shield drops for ${G.diff.window} seconds so you can attack. Wrong: the dragon breathes fire.`},ok=>{
+  askQuestion({...qRange(2,3),boost:.1,title:`The ${BOSS.name} demands an answer!`,stake:`Correct: the smoke shield drops for ${G.diff.window} seconds so you can attack. Wrong: the ${BOSS.short} ${BOSS.verb}.`},ok=>{
     if(!F)return;
     if(ok){F.phase='window';F.window=G.diff.window;F.eState='approach';log(`Correct! The shield is down for ${G.diff.window} seconds. Move in and strike, and step back when it raises its claws!`);}
-    else{F.phase='fire';F.fire=1.3;sfx.fire();log('Wrong answer! The dragon takes a deep breath...');
-      setTimeout(()=>{if(!F||F.done)return;hurtPlayer(G.diff.fire,'The dragon breathes fire!');if(!F.done)setTimeout(bossQuestion,1100);},700);}
+    else{F.phase='fire';F.fire=1.3;sfx.fire();log(`Wrong answer! The ${BOSS.short} gets ready to attack...`);
+      setTimeout(()=>{if(!F||F.done)return;hurtPlayer(G.diff.fire,`The ${BOSS.short} ${BOSS.verb}!`);if(!F.done)setTimeout(bossQuestion,1100);},700);}
   });
 }
 function enemyDefeated(){
   F.done=true;F.res='win';G.fightsWon++;G.score+=F.boss?1000:75;
   $('fControls').hidden=true;$('fCont').hidden=false;$('fCont').focus({preventScroll:true});F.endAt=performance.now();
-  log(F.boss?'The Ember Dragon is defeated! You have conquered every land.':`You defeated the ${F.def.name}!`);sfx.gate();
+  log(F.boss?`The ${BOSS.name} is defeated! You have conquered every land.`:`You defeated the ${F.def.name}!`);sfx.gate();
 }
 function playerDefeated(){
   F.done=true;F.res='lose';
@@ -1046,11 +1099,11 @@ $('fCont').onclick=endFight;
 function pct(r,n){return n?Math.round(100*r/n)+'%':'–';}
 function endGame(won,cause,quit){
   mode='over';hide('pauseBox');hide('fightBox');hide('qBox');
-  const s=G.stat, R=s[3].r+s[4].r, N=s[3].n+s[4].n;
+  const s=G.stat, R=CH_IDS.reduce((a,c)=>a+s[c].r,0), N=CH_IDS.reduce((a,c)=>a+s[c].n,0);
   const mins=Math.max(1,Math.round((performance.now()-G.start)/60000));
   $('eEyebrow').textContent=(G.name?G.name+' · ':'')+new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
   $('eTitle').textContent=won?'Quest complete!':quit?`Quest ended in ${LANDS[G.land].name}`:`Defeated in ${LANDS[G.land].name}`+(cause?` (${cause})`:'');
-  $('eSub').textContent=won?`You crossed all three lands and beat the Ember Dragon on ${G.diff.name} difficulty.`:`You reached land ${G.land+1} of ${LANDS.length} on ${G.diff.name} difficulty. Review the questions below and try again.`;
+  $('eSub').textContent=won?`You crossed all three lands and beat the ${BOSS.name} on ${G.diff.name} difficulty.`:`You reached land ${G.land+1} of ${LANDS.length} on ${G.diff.name} difficulty. Review the questions below and try again.`;
   const cells=[['Score',G.score]];
   cells.push(['Creatures outsmarted',G.outsmarted],['Fights won',G.fightsWon],['Supplies used / left behind',`${G.itemsGained} / ${G.itemsLost}`],['Poisoned supplies',G.poisoned],['Scrolls claimed',G.scrolls],['Time played',`${mins} min`]);
   fillReport($('eReport'));
@@ -1060,7 +1113,7 @@ function endGame(won,cause,quit){
   const seen=new Set();
   G.missed.forEach(m=>{if(seen.has(m.q))return;seen.add(m.q);const li=document.createElement('li');
     li.innerHTML='<span class="badge"></span> <span class="qq"></span><br><span class="ans"></span> <span class="ex"></span>';
-    li.children[0].textContent='Ch '+m.ch;li.children[0].className='badge '+(m.ch===3?'c3':'c4');
+    li.children[0].textContent=chInfo(m.ch).label;li.children[0].className='badge '+chInfo(m.ch).cls;
     li.querySelector('.qq').textContent=m.q;li.querySelector('.ans').textContent=(m.typed?`You typed "${m.typed}". `:'')+'Answer: '+m.a+'.';li.querySelector('.ex').textContent=m.e;ul.appendChild(li);});
   $('eReviewWrap').hidden=!G.missed.length;
   show('endBox');setTimeout(()=>$('againBtn').focus({preventScroll:true}),50);
@@ -1069,8 +1122,8 @@ function fillReport(el){
   const rp=G.rep, rows=[['mc','Multiple choice'],['v','Vocabulary'],['n','Numerical']], chs=G.chapters;
   const cell=o=>o.n?`${o.r} / ${o.n} <small>(${pct(o.r,o.n)})</small>`:'<small>none yet</small>';
   const sum=(a,b)=>({r:a.r+b.r,n:a.n+b.n});
-  let h='<table class="rc"><thead><tr><th>Question type</th>'+chs.map(c=>`<th>Chapter ${c}</th>`).join('')+'<th>Total</th></tr></thead><tbody>';
-  let tot={3:{r:0,n:0},4:{r:0,n:0}};
+  let h='<table class="rc"><thead><tr><th>Question type</th>'+chs.map(c=>`<th>${chInfo(c).label}</th>`).join('')+'<th>Total</th></tr></thead><tbody>';
+  let tot=blankStats();
   rows.forEach(([k,l])=>{const t=chs.reduce((a,c)=>sum(a,rp[k][c]),{r:0,n:0});chs.forEach(c=>tot[c]=sum(tot[c],rp[k][c]));
     h+=`<tr><th scope="row">${l}</th>`+chs.map(c=>`<td>${cell(rp[k][c])}</td>`).join('')+`<td><b>${cell(t)}</b></td></tr>`;});
   const all=chs.reduce((a,c)=>sum(a,tot[c]),{r:0,n:0});
@@ -1374,9 +1427,9 @@ function drawHUD(){
   cx.textAlign='left';cx.fillStyle='#f4e7c6';
   cx.fillText(L.def.name,272,22);
   if(!L.boss){cx.fillText('Scrolls',450,22);for(let i=0;i<3;i++){const got=i<L.scrolls.filter(s=>s.got).length;cx.fillStyle=got?'#ffd36b':'#55606a';cx.fillRect(512+i*20,14,14,16);cx.fillStyle=got?'#b9731c':'#3a434b';cx.fillRect(517+i*20,14,4,16);}}
-  else{cx.fillText('Find and defeat the dragon',450,22);}
+  else{cx.fillText(`Find and defeat the ${BOSS.short}`,450,22);}
   cx.fillStyle='#f4e7c6';cx.textAlign='right';
-  const s=G.stat,R=s[3].r+s[4].r,N=s[3].n+s[4].n;
+  const s=G.stat,R=CH_IDS.reduce((a,c)=>a+s[c].r,0),N=CH_IDS.reduce((a,c)=>a+s[c].n,0);
   cx.fillText(`Score ${G.score}`,W-150,22);
   cx.fillText(`Correct ${pct(R,N)}`,W-14,22);
   cx.textBaseline='alphabetic';

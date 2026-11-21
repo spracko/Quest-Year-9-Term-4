@@ -86,6 +86,19 @@ input[type=text]{font:inherit;padding:7px 10px;border:2px solid var(--ink);borde
 textarea{width:100%;box-sizing:border-box;min-height:300px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.45;border:2px solid var(--ink);border-radius:8px;padding:10px;background:#fffaf0;color:var(--ink);white-space:pre;overflow:auto}
 .note{font-size:.88rem;color:var(--muted)}
 .err{color:var(--bad);font-weight:700;font-size:.9rem;white-space:pre-wrap}
+table.rc{border-collapse:collapse;width:100%;min-width:420px;font-variant-numeric:tabular-nums}
+.rc th,.rc td{border:2px solid var(--ink);padding:8px 10px;text-align:left}
+.rc thead th{background:var(--ink);color:var(--parchment);font-family:var(--display);font-weight:500}
+.rc tbody th{background:var(--parchment-2)}
+.rc td{background:#fffaf0}
+.rc .tot th,.rc .tot td{background:#f1dfb0}
+.rc small{color:var(--muted);font-weight:700}
+.rcwrap{overflow-x:auto;margin:8px 0}
+.defn{background:#fffaf0;border:2px dashed var(--ink);border-radius:10px;padding:12px 14px;font-size:1.08rem;font-weight:700;line-height:1.45}
+.typed{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.typed input{font:inherit;font-size:1.15rem;font-weight:700;padding:9px 12px;border:3px solid var(--ink);border-radius:10px;background:#fffaf0;color:var(--ink);flex:1 1 220px;min-width:0}
+.typed input.right{background:#d4efd9;border-color:var(--good)} .typed input.wrong{background:#f6d2cd;border-color:var(--bad)}
+.typed .unit{font-weight:800;font-size:1.05rem}
 code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9em}
 @media (prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>
@@ -94,8 +107,8 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
 
 <div class="bar">
   <b>Atoms &amp; Earth Quest</b>
-  <span class="keys"><span><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> move</span><span><kbd>1</kbd>–<kbd>4</kbd> answer</span><span><kbd>Space</kbd> strike in fights</span><span><kbd>P</kbd> pause</span>
-  <button class="iconbtn" id="muteBtn" type="button">Sound: on</button></span>
+  <span class="keys"><span><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> move</span><span><kbd>1</kbd>–<kbd>4</kbd> or type to answer</span><span><kbd>Space</kbd> strike in fights</span><span><kbd>P</kbd> pause</span>
+  <button class="iconbtn" id="repBtn" type="button">Report card (R)</button><button class="iconbtn" id="muteBtn" type="button">Sound: on</button></span>
 </div>
 <div id="wrap"><canvas id="game" width="960" height="600" aria-label="Game world"></canvas></div>
 
@@ -176,12 +189,25 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
   </div>
 </div>
 
+<!-- REPORT CARD -->
+<div class="overlay top" id="repBox" hidden>
+  <div class="card wide" role="dialog" aria-labelledby="repTitle">
+    <div class="eyebrow">Game paused</div>
+    <h2 id="repTitle">Report card</h2>
+    <p class="note" id="repWho"></p>
+    <div class="rcwrap" id="repTable"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="repClose" type="button">Back to the game (R)</button></div>
+  </div>
+</div>
+
 <!-- END -->
 <div class="overlay" id="endBox" hidden>
   <div class="card wide">
     <div class="eyebrow" id="eEyebrow">Results</div>
     <h1 id="eTitle">Quest complete!</h1>
     <p id="eSub"></p>
+    <h2 style="margin-top:10px">Report card</h2>
+    <div class="rcwrap" id="eReport"></div>
     <div class="stats" id="eStats"></div>
     <div id="eReviewWrap"><h2 style="margin-top:14px">Questions to review</h2><ul class="review" id="eReview"></ul></div>
     <div class="row" style="margin-top:16px"><button class="btn" id="againBtn" type="button">Play again</button></div>
@@ -193,7 +219,10 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
   <div class="card wide">
     <div class="eyebrow">For teachers</div>
     <h2>Question bank</h2>
-    <p class="note">One question per line, in this order, separated by <code>|</code>:<br><code>chapter | difficulty 1–4 | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation</code><br>The correct answer always goes first; the game shuffles the options. Lines starting with <code>#</code> are ignored. Saved changes stay in this browser only. To change the bank for everyone, edit the <code>DEFAULT_BANK</code> section near the top of the game's script.</p>
+    <p class="note">One question per line, with parts separated by <code>|</code>. There are three kinds:<br>
+    <b>Multiple choice:</b> <code>chapter | difficulty 1–4 | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation</code> (the correct answer goes first; the game shuffles the options)<br>
+    <b>Vocabulary:</b> <code>V | chapter | difficulty | definition | answer;other accepted answer | explanation</code> (capitals, spaces and hyphens are ignored; spelling must match)<br>
+    <b>Numerical:</b> <code>N | chapter | difficulty | question | answer | allowed error (0 = exact) | unit | explanation</code><br> Lines starting with <code>#</code> are ignored. Saved changes stay in this browser only. To change the bank for everyone, edit the <code>DEFAULT_BANK</code> section near the top of the game's script.</p>
     <textarea id="bankText" spellcheck="false" aria-label="Question bank"></textarea>
     <div class="err" id="bankErr"></div>
     <p class="note" id="bankStatus"></p>
@@ -207,7 +236,7 @@ code{background:var(--parchment-2);padding:0 4px;border-radius:4px;font-size:.9e
    One question per line:
    chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | explanation
    ========================================================================== */
-const DEFAULT_BANK = `# chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | one-line explanation
+const DEFAULT_BANK = `# MULTIPLE CHOICE: chapter | difficulty (1-4) | question | CORRECT answer | wrong 1 | wrong 2 | wrong 3 | one-line explanation
 3|1|Which particle in an atom carries a negative charge?|Electron|Proton|Neutron|Nucleus|Electrons are negative, protons are positive and neutrons have no charge.
 3|1|The atomic number of an element tells you its number of…|Protons|Neutrons|Electron shells|Protons plus neutrons|Atomic number = number of protons, which equals the number of electrons in a neutral atom.
 3|1|Where are an atom's valence electrons?|In the outer shell|In the nucleus|Only in the first shell|Shared between two nuclei|Valence electrons are the electrons in the outermost shell.
@@ -322,7 +351,209 @@ const DEFAULT_BANK = `# chapter | difficulty (1-4) | question | CORRECT answer |
 4|4|If the ski season shrinks from about 110 days to about 55 days, what is the percentage decrease?|50%|55%|25%|110%|The season loses 55 of its 110 days: 55 ÷ 110 = 0.5, a 50% decrease.
 4|4|Why are ice core records often shown on the same graph as the Mauna Loa record?|Both measure CO₂, so they join into one long record of past and present levels|Ice cores only measure temperature|Mauna Loa is in Antarctica|Ice cores predict future CO₂ levels|Ice cores cover hundreds of thousands of years and Mauna Loa covers recent decades, so together they show the long-term change.
 4|4|Which evidence BEST supports the claim that recent warming is linked to human CO₂ emissions?|CO₂ has risen far above its 400 000-year natural range since the Industrial Revolution, as temperatures have risen|Last summer was very hot|Some years are cooler than others|Volcanoes release CO₂|Strong evidence uses long-term data that links the timing of rising CO₂ to rising temperatures, not one season.
-4|4|Arctic summer sea ice is shrinking by about 13% per decade. Roughly how much would be lost after four decades at that rate?|A little under half|About 13%|About 4%|It would double|Each decade keeps 87% of what was left: 0.87 × 0.87 × 0.87 × 0.87 ≈ 0.57, so about 43% is lost.`;
+4|4|Arctic summer sea ice is shrinking by about 13% per decade. Roughly how much would be lost after four decades at that rate?|A little under half|About 13%|About 4%|It would double|Each decade keeps 87% of what was left: 0.87 × 0.87 × 0.87 × 0.87 ≈ 0.57, so about 43% is lost.
+# VOCABULARY: V | chapter | difficulty | definition | answer (alternatives separated by ;) | explanation
+V|3|1|A naturally occurring liquid fossil fuel that can be refined to produce many different chemicals|crude oil|Key term from section 3.01: crude oil.
+V|3|1|Limited in size or amount|finite|Key term from section 3.01: finite.
+V|3|1|An energy source made of ancient fossils|fossil fuel|Key term from section 3.01: fossil fuel.
+V|3|2|A resource that is manufactured from natural resources|made resource|Key term from section 3.01: made resource.
+V|3|1|A resource that is useful in its natural form|natural resource|Key term from section 3.01: natural resource.
+V|3|1|Finite, and will run out|non-renewable|Key term from section 3.01: non-renewable.
+V|3|1|Can be renewed, and will not run out|renewable|Key term from section 3.01: renewable.
+V|3|1|A source of something that is useful|resource|Key term from section 3.01: resource.
+V|3|4|A dark, fine-grained metamorphic rock known for its distinct green colouring and hardness|andesitic hornfels|Key term from section 3.02: andesitic hornfels.
+V|3|3|A substance that holds other materials together to form a cohesive whole|binding agent|Key term from section 3.02: binding agent.
+V|3|2|Having the structure and form of a crystal|crystalline|Key term from section 3.02: crystalline.
+V|3|3|A dark red solid that exists as the mineral haematite and is the main component of rust|iron oxide|Key term from section 3.02: iron oxide.
+V|3|2|A substance that becomes plastic when heated and hardens when cooled, and can undergo these processes repeatedly|thermoplastic|Key term from section 3.02: thermoplastic.
+V|3|2|A metallic mineral deposit that is profitable to mine|metal ore|Key term from section 3.03: metal ore.
+V|3|3|Rocks that contain a particular mineral in large amounts|mineral deposit|Key term from section 3.03: mineral deposit.
+V|3|3|Parts of a mineral resource that can be mined economically|mineral reserves|Key term from section 3.03: mineral reserves.
+V|3|2|To extract metal from ore by heating and melting|smelt|Key term from section 3.03: smelt.
+V|3|1|The variety of organisms in an ecosystem|biodiversity|Key term from section 3.04: biodiversity.
+V|3|1|The place where an animal or plant naturally lives|habitat|Key term from section 3.04: habitat.
+V|3|1|The smallest particle of a chemical element; made up of electrons, protons and neutrons|atom|Key term from section 3.05: atom.
+V|3|2|The number of protons in an atom (also given the symbol Z)|atomic number;atomic number Z|Key term from section 3.05: atomic number.
+V|3|2|An electrostatic force that connects atoms to one another|chemical bond|Key term from section 3.05: chemical bond.
+V|3|1|A pure substance made up of two or more types of atoms bonded in fixed ratios|compound|Key term from section 3.05: compound.
+V|3|1|The area around the nucleus where a specific number of electrons orbit at a specific energy level|electron shell|Key term from section 3.05: electron shell.
+V|3|3|A force of attraction between positive and negative particles|electrostatic force|Key term from section 3.05: electrostatic force.
+V|3|1|A pure substance made up of only one type of atom|element|Key term from section 3.05: element.
+V|3|2|A diagram showing the electron configuration of an atom|Bohr diagram|Key term from section 3.06: Bohr diagram.
+V|3|2|The organisation of electrons into shells around the nucleus of atoms|electron configuration|Key term from section 3.06: electron configuration.
+V|3|3|The valence electron configuration that occurs through chemical bonding|noble gas configuration|Key term from section 3.06: noble gas configuration.
+V|3|3|The tendency of atoms to achieve eight electrons in their valence (outer) shell to be stable|octet rule|Key term from section 3.06: octet rule.
+V|3|1|Electrons that occupy the outermost shell of an atom|valence electrons;valence electron|Key term from section 3.06: valence electrons.
+V|3|2|The outermost shell of an atom|valence shell|Key term from section 3.06: valence shell.
+V|3|1|A negatively charged ion|anion|Key term from section 3.07: anion.
+V|3|1|A positively charged ion|cation|Key term from section 3.07: cation.
+V|3|2|Chemical symbols showing the ratio of elements to one another in a compound|chemical formula|Key term from section 3.07: chemical formula.
+V|3|1|An atom with unequal numbers of protons and electrons; an atom with a positive or negative charge|ion|Key term from section 3.07: ion.
+V|3|1|An electrostatic force between a cation and an anion|ionic bond|Key term from section 3.07: ionic bond.
+V|3|3|A three-dimensional repeating structure or pattern|lattice|Key term from section 3.07: lattice.
+V|3|2|The attracting power of an atom; ion charge|valency|Key term from section 3.07: valency.
+V|3|1|A metallic substance made of a metallic element and at least one other element, usually a metal|alloy|Key term from section 3.08: alloy.
+V|3|2|Electrons that are free to move about the substance|delocalised electrons;delocalized electrons;free electrons|Key term from section 3.08: delocalised electrons.
+V|3|2|A bond in which free electrons move around metal ions|metallic bond|Key term from section 3.08: metallic bond.
+V|3|1|A bond in which two atoms share one or more pairs of electrons|covalent bond|Key term from section 3.09: covalent bond.
+V|3|3|A continuous network of atoms joined together through covalent bonds (not discrete)|covalent network solid;giant network solid;giant covalent solid|Key term from section 3.09: covalent network solid.
+V|3|2|Molecules made up of two atoms|diatomic molecules;diatomic molecule|Key term from section 3.09: diatomic molecules.
+V|3|2|Two pairs of electrons shared between two atoms|double covalent bond|Key term from section 3.09: double covalent bond.
+V|3|2|A chemical formula for molecules showing the type and exact number of atoms in the substance|molecular formula|Key term from section 3.09: molecular formula.
+V|3|1|Two or more atoms covalently bonded to form a discrete or separate unit of atoms|molecule|Key term from section 3.09: molecule.
+V|3|2|One pair of electrons shared between two atoms|single covalent bond|Key term from section 3.09: single covalent bond.
+V|3|2|Three pairs of electrons shared between two atoms|triple covalent bond|Key term from section 3.09: triple covalent bond.
+V|3|3|A solid with a highly ordered arrangement of particles at the microscopic and macroscopic levels|crystalline solid|Key term from section 3.10: crystalline solid.
+V|3|3|A continuous network of atoms joined together through covalent bonds (not discrete), sometimes called a giant covalent solid|giant network solid;covalent network solid;giant covalent solid|Key term from section 3.10: giant network solid.
+V|3|1|An organic compound made up of only carbon and hydrogen atoms|hydrocarbon|Key term from section 3.11: hydrocarbon.
+V|3|2|A substance that does not contain carbon–hydrogen bonds|inorganic compound|Key term from section 3.11: inorganic compound.
+V|3|2|The study of carbon-containing compounds|organic chemistry|Key term from section 3.11: organic chemistry.
+V|3|2|A substance that contains carbon, commonly bonded to hydrogen|organic compound|Key term from section 3.11: organic compound.
+V|3|2|A hydrocarbon containing only single covalent bonds|alkane|Key term from section 3.12: alkane.
+V|3|2|A hydrocarbon containing a double covalent bond|alkene|Key term from section 3.12: alkene.
+V|3|2|A hydrocarbon containing a triple covalent bond|alkyne|Key term from section 3.12: alkyne.
+V|3|3|An atom, a group of atoms or a specific feature that is responsible for the chemical properties of a compound|functional group|Key term from section 3.12: functional group.
+V|3|3|A formula that represents the atomic composition of members of a class of compounds|general formula|Key term from section 3.12: general formula.
+V|3|4|A class of compounds with the same functional group and whose members differ by –CH2–|homologous series|Key term from section 3.12: homologous series.
+V|3|3|A compound with only single covalent carbon–carbon bonds|saturated compound|Key term from section 3.12: saturated compound.
+V|3|3|A compound with at least one double or triple carbon–carbon bond|unsaturated compound|Key term from section 3.12: unsaturated compound.
+V|3|3|The resistance of a substance to flow or change of shape; high _____ = low ability to flow (thick)|viscosity|Key term from section 3.12: viscosity.
+V|3|2|The abbreviation for the International Union of Pure and Applied Chemistry|IUPAC|Key term from section 3.13: IUPAC.
+V|3|3|A number that indicates the carbon where certain parts of an organic compound are positioned|locant|Key term from section 3.13: locant.
+V|3|2|Letters or numbers placed before the stem of the word|prefix|Key term from section 3.13: prefix.
+V|3|3|A shorthand way to represent organic compounds, using only lines and symbols for elements other than carbon and hydrogen|skeletal formula|Key term from section 3.13: skeletal formula.
+V|3|2|The word in the name of an organic compound that indicates the number of carbons in the longest chain|stem|Key term from section 3.13: stem.
+V|3|2|A representation of a compound that shows the structural arrangement of atoms|structural formula|Key term from section 3.13: structural formula.
+V|3|2|A word or letters placed after the stem of the word|suffix|Key term from section 3.13: suffix.
+V|3|2|A mixture of gravel, sand and bitumen, used for roads|asphalt|Key term from section 3.14: asphalt.
+V|3|2|The heaviest fraction of crude oil, left over after fractional distillation|bitumen|Key term from section 3.14: bitumen.
+V|3|2|To change from a gas to a liquid state|condense|Key term from section 3.14: condense.
+V|3|3|A chemical used to support large-scale chemical reactions, usually in industry|feedstock|Key term from section 3.14: feedstock.
+V|3|2|A part of a larger mixture of many parts|fraction|Key term from section 3.14: fraction.
+V|3|3|The separation of a mixture into different parts or fractions, according to their different boiling points|fractional distillation|Key term from section 3.14: fractional distillation.
+V|3|4|A vertical cylinder that decreases in temperature up the column, condensing and separating substances just below their boiling points|fractionating column|Key term from section 3.14: fractionating column.
+V|3|2|A fuel derived from biomass such as plants and animal waste, rather than from fossil fuels|biofuel|Key term from section 3.15: biofuel.
+V|3|1|A reaction that involves burning in the presence of oxygen to release heat|combustion|Key term from section 3.15: combustion.
+V|3|3|A reaction that releases energy into the surroundings, causing the temperature to rise|exothermic|Key term from section 3.15: exothermic.
+V|3|3|A reaction taking place in the presence of oxygen|oxidation|Key term from section 3.15: oxidation.
+V|3|1|A black form of carbon formed by incomplete combustion|soot|Key term from section 3.15: soot.
+V|3|4|A reaction in which alkenes join together at the carbon–carbon double bond to form organic polymers|addition polymerisation|Key term from section 3.16: addition polymerisation.
+V|3|1|A small molecule that bonds together in a repeating pattern to form large polymers|monomer|Key term from section 3.16: monomer.
+V|3|2|The common name for the most widely used plastic|polyethylene;polyethene|Key term from section 3.16: polyethylene.
+V|3|1|A long-chain molecule (usually carbon-based) made up of many small repeating units|polymer|Key term from section 3.16: polymer.
+V|3|2|A reaction in which monomers combine chemically to form long-chain molecules|polymerisation|Key term from section 3.16: polymerisation.
+V|3|3|Make something new by combining smaller parts|synthesise|Key term from section 3.16: synthesise.
+V|3|2|Made by humans by non-natural methods|synthetic|Key term from section 3.16: synthetic.
+V|3|2|Can be broken down (e.g. by bacteria)|biodegradable|Key term from section 3.17: biodegradable.
+V|3|2|Chemical bonds that join polymer chains to one another|cross-links;crosslink|Key term from section 3.17: cross-links.
+V|3|2|Chemically unreactive|inert|Key term from section 3.17: inert.
+V|3|3|To soften a polymer by adding lubricating chemicals, resulting in a more flexible polymer|plasticise|Key term from section 3.17: plasticise.
+V|3|2|The 3-letter abbreviation for polyvinyl chloride|PVC|Key term from section 3.17: PVC.
+V|3|3|A polymer with cross-links; chars when heated instead of melting|thermoset|Key term from section 3.17: thermoset.
+V|3|4|Synthetic rubber that has been modified from its natural form to include cross-links|vulcanised rubber|Key term from section 3.17: vulcanised rubber.
+V|3|3|The build-up of chemicals such as microplastics in the tissues of living organisms|bioaccumulation|Key term from section 3.18: bioaccumulation.
+V|3|4|Increasing concentrations of chemical toxins in organisms up the food chain|biomagnification|Key term from section 3.18: biomagnification.
+V|3|2|A type of microplastic with a specific function for scrubbing or exfoliating|microbeads|Key term from section 3.18: microbeads.
+V|3|2|Tiny plastic particles from the physical breakdown of larger plastics|microplastics|Key term from section 3.18: microplastics.
+V|3|2|A plastic made from a biological material|bioplastic|Key term from section 3.19: bioplastic.
+V|3|2|A bioplastic polymer made from corn or sugar (give its 3-letter abbreviation)|PLA;polylactic acid|Key term from section 3.19: PLA.
+V|4|1|The range of different living things in an ecosystem|biodiversity|Key term from section 4.1: biodiversity.
+V|4|2|Any benefit people get from an ecosystem|ecosystem service|Key term from section 4.1: ecosystem service.
+V|4|2|Able to be kept going at a certain level or rate over time|sustainable|Key term from section 4.1: sustainable.
+V|4|2|A broad concept covering land, waters, coasts, sky and stars, together with the lore, law, culture, language, family and identity of First Nations peoples|Country|Key term from section 4.2: Country.
+V|4|3|Having power or control over something|dominion|Key term from section 4.2: dominion.
+V|4|3|The very large mammals and marsupials that once lived across Australia and died out late in the Pleistocene|megafauna|Key term from section 4.2: megafauna.
+V|4|1|Weather trends over at least 30 years|climate|Key term from section 4.3: climate.
+V|4|2|A region with a particular climate|climate zone|Key term from section 4.3: climate zone.
+V|4|3|A scientist who studies the atmosphere and its effects, including weather|meteorologist|Key term from section 4.3: meteorologist.
+V|4|3|Large-scale movement of ocean water in major currents|ocean circulation|Key term from section 4.3: ocean circulation.
+V|4|1|Conditions in the atmosphere at a particular place and time|weather|Key term from section 4.3: weather.
+V|4|1|The layer of gases around Earth, about 600 km thick|atmosphere|Key term from section 4.4: atmosphere.
+V|4|1|Earth's atmosphere trapping heat from the Sun|greenhouse effect|Key term from section 4.4: greenhouse effect.
+V|4|1|A gas that traps the Sun's heat energy in the atmosphere|greenhouse gas|Key term from section 4.4: greenhouse gas.
+V|4|2|A stronger greenhouse effect caused by greenhouse gases released by humans|enhanced greenhouse effect|Key term from section 4.5: enhanced greenhouse effect.
+V|4|2|The period from the late 1700s when manufacturing moved to large factories powered by fossil fuels|Industrial Revolution|Key term from section 4.5: Industrial Revolution.
+V|4|3|Capturing and storing carbon dioxide from the atmosphere|carbon sequestration|Key term from section 4.6: carbon sequestration.
+V|4|3|The useful energy produced compared with the energy supplied|energy efficiency|Key term from section 4.6: energy efficiency.
+V|4|2|The release of a greenhouse gas|greenhouse gas emission;emission|Key term from section 4.6: greenhouse gas emission.
+V|4|2|When greenhouse gases released are balanced by those absorbed by other processes|net zero emissions;net zero|Key term from section 4.6: net zero emissions.
+V|4|1|A slow-moving mass of ice built up from accumulated snow|glacier|Key term from section 4.7: glacier.
+V|4|2|Water, liquid or solid, that forms in the atmosphere and falls to the surface|precipitation|Key term from section 4.7: precipitation.
+V|4|2|An increase in volume caused by an increase in temperature|thermal expansion|Key term from section 4.7: thermal expansion.
+V|4|1|The processes that move water between oceans, atmosphere, land and living things|water cycle|Key term from section 4.7: water cycle.
+V|4|2|High-elevation areas|alpine|Key term from section 4.8: alpine.
+V|4|2|The natural movement of carbon through ecosystems|carbon cycle|Key term from section 4.8: carbon cycle.
+V|4|2|A fall in ocean pH as the ocean absorbs more carbon dioxide|ocean acidification|Key term from section 4.8: ocean acidification.
+V|4|3|A ring-shaped island formed by a coral reef|coral atoll|Key term from section 4.9: coral atoll.
+V|4|2|Loss of colour in coral when its symbiotic algae are lost|coral bleaching|Key term from section 4.9: coral bleaching.
+V|4|2|Water flowing underground through gaps in rock and soil|groundwater|Key term from section 4.9: groundwater.
+V|4|2|To break down naturally through the action of microorganisms|biodegrade|Key term from section 4.10: biodegrade.
+V|4|4|Excess nutrients in water causing heavy algal growth|eutrophication|Key term from section 4.10: eutrophication.
+V|4|2|The reaction in the chloroplasts of plants and algae that turns carbon dioxide and water into glucose and oxygen|photosynthesis|Key term from section 4.10: photosynthesis.
+V|4|3|A complex term for how Aboriginal and Torres Strait Islander peoples relate to each other, the human world and the more-than-human world|Dreaming|Key term from section 4.11: Dreaming.
+V|4|3|The underground part (rhizome) of a plant, often rich in nutrients|tuber|Key term from section 4.11: tuber.
+V|4|1|Getting rid of waste by burying it|landfill|Key term from section 4.12: landfill.
+V|4|1|To turn waste into reusable materials|recycle|Key term from section 4.13: recycle.
+V|4|3|An ecological relationship in which both partners depend on each other to survive|symbiotic relationship|Key term from section 4.14: symbiotic relationship.
+V|4|4|Algae that live inside coral tissue|zooxanthellae|Key term from section 4.14: zooxanthellae.
+# NUMERICAL: N | chapter | difficulty | question | answer | allowed error (+/-) | unit shown beside the box | explanation
+N|3|1|How many known chemical elements are there?|118|0|elements|There are 118 known chemical elements.
+N|3|1|How many protons does a nitrogen atom have?|7|0|protons|Nitrogen's atomic number is 7, so each atom has 7 protons and 7 electrons.
+N|3|1|What is the maximum number of electrons that the first electron shell can hold?|2|0|electrons|The first shell holds 2; for the first 20 elements the pattern is 2, 8, 8, 2.
+N|3|1|According to the octet rule, how many electrons do atoms tend to have in their valence shell to be stable?|8|0|electrons|"Octet" means eight: a full outer shell of 8 electrons is stable.
+N|3|2|Potassium has 19 electrons. How many electron shells does a potassium atom have?|4|0|shells|Its configuration is 2, 8, 8, 1, which uses 4 shells.
+N|3|2|Sodium is in period 3 of the periodic table. How many electron shells does a sodium atom have?|3|0|shells|The period number equals the number of electron shells.
+N|3|2|How many valence electrons does a carbon atom have?|4|0|electrons|Carbon is 2, 4, so it has 4 valence electrons and forms 4 covalent bonds.
+N|3|2|What is the size of the charge on a magnesium ion? (Type the number only.)|2|0|+|Magnesium loses its 2 valence electrons to form Mg²⁺.
+N|3|2|How many electrons are shared in a double covalent bond?|4|0|electrons|A double bond is two shared pairs: 2 × 2 = 4 electrons.
+N|3|2|In potassium sulfide (K₂S), how many potassium ions are there for every sulfide ion?|2|0|K⁺ ions|K⁺ is 1+ and S²⁻ is 2−, so a 2:1 ratio balances the charges.
+N|3|2|Glucose has the formula C₆H₁₂O₆. How many atoms are in one glucose molecule?|24|0|atoms|6 carbon + 12 hydrogen + 6 oxygen = 24 atoms.
+N|3|2|A renewable resource can replenish itself within the average human life span. About how long is that?|80|0|years|The textbook gives the average human life span as about 80 years.
+N|3|2|Microplastics are typically smaller than how many millimetres?|5|0|mm|Microplastics are tiny plastic particles, typically less than 5 mm in size.
+N|3|2|Carbon forms the basis of more than what percentage of all known compounds?|90|0|%|Carbon's ability to form 4 bonds makes it the basis of over 90% of known compounds.
+N|3|2|Diamond is a covalent network solid with an extremely high melting point. About what is its melting point?|4500|0|°C|Diamond melts at about 4500 °C because many strong covalent bonds must be broken.
+N|3|2|Before fractional distillation, crude oil is heated in a furnace to about what temperature?|350|0|°C|Crude oil is heated to about 350 °C so most of it turns into vapour.
+N|3|2|How many carbon atoms long are the chains in petrol?|8|0|carbons|Petrol chains are about 8 carbons long; bitumen chains are over 70.
+N|3|2|At least how many different organic compounds are there?|10|0|million|There are at least 10 million different organic compounds.
+N|3|3|Alkanes have the general formula CₙH₂ₙ₊₂. How many hydrogen atoms are in an alkane with 5 carbon atoms?|12|0|H atoms|2 × 5 + 2 = 12, so the formula is C₅H₁₂.
+N|3|3|Alkenes have the general formula CₙH₂ₙ. How many hydrogen atoms are in an alkene with 4 carbon atoms?|8|0|H atoms|2 × 4 = 8, so the formula is C₄H₈.
+N|3|3|Neighbouring members of a homologous series differ by –CH₂–. How many atoms is that?|3|0|atoms|One carbon and two hydrogen atoms: 3 atoms.
+N|3|3|How many electrons does a chloride ion, Cl⁻, have?|18|0|electrons|Chlorine has 17 electrons and gains 1, giving 18 (2, 8, 8).
+N|3|3|An atom has a mass number of 40 and an atomic number of 20. How many neutrons does it have?|20|0|neutrons|Neutrons = mass number − atomic number = 40 − 20 = 20.
+N|3|3|An atom has the electron configuration 2, 8, 8, 2. What is its atomic number?|20|0||2 + 8 + 8 + 2 = 20 electrons, so 20 protons: calcium.
+N|3|3|Bioplastics were invented about how many years ago?|100|0|years|Bioplastics were first invented about 100 years ago.
+N|3|4|Octane is an alkane with 8 carbon atoms. How many hydrogen atoms does it have?|18|0|H atoms|CₙH₂ₙ₊₂ with n = 8 gives 2 × 8 + 2 = 18 hydrogen atoms.
+N|3|4|How many atoms are in one molecule of propane, C₃H₈?|11|0|atoms|3 carbon + 8 hydrogen = 11 atoms.
+N|3|4|How many hydrogen atoms are in an alkane with 12 carbon atoms?|26|0|H atoms|2 × 12 + 2 = 26, so the formula is C₁₂H₂₆.
+N|3|4|How many electrons are shared in total in a molecule of carbon tetrachloride, CCl₄?|8|0|electrons|There are 4 single bonds, each a shared pair: 4 × 2 = 8 electrons.
+N|4|1|How many Sustainable Development Goals did the UN adopt?|17|0|goals|The UN adopted 17 SDGs in 2015.
+N|4|1|Climate describes weather trends over at least how many years?|30|0|years|Climate is the average weather of a place over at least 30 years.
+N|4|1|About how thick is Earth's atmosphere?|600|0|km|The atmosphere is about 600 km thick.
+N|4|2|About what percentage of the atmosphere is nitrogen?|78|0|%|Air is about 78% nitrogen, 21% oxygen, 0.93% argon and 0.04% CO₂.
+N|4|2|About what percentage of the atmosphere is oxygen?|21|0|%|Air is about 78% nitrogen, 21% oxygen, 0.93% argon and 0.04% CO₂.
+N|4|2|What was the pre-industrial concentration of carbon dioxide?|280|0|ppm|Before the Industrial Revolution, CO₂ was about 280 ppm.
+N|4|2|In what year did Charles Keeling begin measuring CO₂ at Mauna Loa?|1958|0||Keeling began his measurements in 1958.
+N|4|2|By what year do the UN Sustainable Development Goals aim to be achieved?|2030|0||The SDGs were adopted in 2015 with a target year of 2030.
+N|4|2|Australia aims to cut emissions to what percentage below 2005 levels by 2030?|43|0|%|Australia's target is 43% below 2005 levels by 2030, then net zero by 2050.
+N|4|2|By what year does Australia aim to reach net zero emissions?|2050|0||Australia's long-term target is net zero by 2050.
+N|4|2|In what year was the Kyoto Protocol adopted?|1997|0||The Kyoto Protocol (1997) came before the Paris Agreement (2015).
+N|4|2|A heatwave is at least how many days of unusually high temperatures for a region?|3|0|days|A heatwave is three or more days of unusually high temperatures.
+N|4|2|By about how many degrees has Australia warmed since 1910?|1|0.2|°C|Australia has warmed by about 1 °C since 1910.
+N|4|3|About how far did the Franz Josef glacier in New Zealand retreat between 2009 and 2020?|800|0|m|The glacier retreated about 800 m in 11 years.
+N|4|3|Arctic summer sea ice has shrunk by about what percentage per decade since the late 1970s?|13|0|%|Arctic summer sea ice has shrunk about 13% per decade.
+N|4|3|About what was the concentration of CO₂ in the atmosphere in 2024?|425|5|ppm|CO₂ reached about 425 ppm in 2024.
+N|4|3|Nitrous oxide can stay in the atmosphere for more than how many years?|100|0|years|Nitrous oxide is long-lived: over 100 years.
+N|4|3|For each week that Hudson Bay sea ice breaks up earlier, polar bears are about how much lighter?|10|0|kg|Bears lose about 10 kg for each week of earlier ice break-up.
+N|4|3|Ski resorts need about how much snow to operate?|30|0|cm|Resorts need about 30 cm of snow.
+N|4|3|How many islands make up Tuvalu?|9|0|islands|Tuvalu has nine islands, most about 3 m above sea level.
+N|4|3|Winter snowfall supplies about what percentage of the water entering the Murray–Darling Basin?|29|0|%|About 29% of the basin's water comes from winter snowfall.
+N|4|3|Fewer than how many mountain pygmy possums are left in the wild?|2000|0|possums|Fewer than 2000 remain, in alpine Victoria and NSW.
+N|4|4|Tuvalu's sea level has risen over 5 mm per year, compared with a global average of 1.8 mm. About how many times faster is that? (1 decimal place)|2.8|0.1|times|5 ÷ 1.8 ≈ 2.8 times the global average.
+N|4|4|Methane was about 0.7 ppm before industry and is about 1.9 ppm now. How many times higher is it now? (1 decimal place)|2.7|0.1|times|1.9 ÷ 0.7 ≈ 2.7 times higher.
+N|4|4|Pacific sea levels are projected to rise 0.20–0.36 m by 2050. What is the middle of that range?|0.28|0.005|m|(0.20 + 0.36) ÷ 2 = 0.28 m.
+N|4|4|Sea levels rose up to 0.20 m over the last century. What average rise per year is that?|2|0|mm per year|0.20 m = 200 mm, and 200 ÷ 100 years = 2 mm per year.
+N|4|4|A home uses 400 kWh of electricity each month. Switching off appliances at the wall saves 10%. How much is saved in a year?|480|0|kWh|10% of 400 = 40 kWh per month, × 12 months = 480 kWh.
+N|4|4|If Arctic sea ice covers 7 million km² and shrinks by 13% in a decade, how much is left? (2 decimal places)|6.09|0.02|million km²|7 × 0.87 = 6.09 million km².`;
 
 /* ========================================================================== */
 (function(){
@@ -341,25 +572,44 @@ const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},
 
 /* ---------------- question bank ---------------- */
 const BANK_KEY='aeq-bank-v1';
+function parseNum(x){if(x==null)return null;const t=String(x).trim().replace(/[\u2212\u2013]/g,'-').replace(/[,\s]/g,'');return /^-?(\d+\.?\d*|\.\d+)$/.test(t)?parseFloat(t):null;}
+function normWord(x){return String(x).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\-\u2010-\u2015'’‘().,]/g,'');}
+function vocabMatch(typed,ans){const t=normWord(typed);if(!t)return false;return ans.some(a=>{const n=normWord(a);return t===n||t===n+'s'||t+'s'===n;});}
 function parseBank(text){
   const qs=[], errs=[];
   text.split(/\r?\n/).forEach((line,i)=>{
     const t=line.trim(); if(!t||t.startsWith('#')) return;
     const p=t.split('|').map(s=>s.trim());
+    const kind=p[0].toUpperCase();
+    if(kind==='V'||kind==='N'){
+      const ch=parseInt(p[1],10), d=parseInt(p[2],10);
+      if(ch!==3&&ch!==4){errs.push(`Line ${i+1}: chapter must be 3 or 4`);return;}
+      if(!(d>=1&&d<=4)){errs.push(`Line ${i+1}: difficulty must be 1, 2, 3 or 4`);return;}
+      if(kind==='V'){
+        if(p.length<6||!p[3]||!p[4]){errs.push(`Line ${i+1}: vocabulary lines need V | chapter | difficulty | definition | answer | explanation`);return;}
+        const ans=p[4].split(';').map(x=>x.trim()).filter(Boolean);
+        qs.push({id:qs.length,type:'v',ch,d,q:p[3],ans,a:[ans[0]],e:p[5]});
+      }else{
+        const num=parseNum(p[4]), tol=p[5]===''?0:parseNum(p[5]);
+        if(p.length<8||num===null||tol===null){errs.push(`Line ${i+1}: numerical lines need N | chapter | difficulty | question | answer (a number) | allowed error | unit | explanation`);return;}
+        qs.push({id:qs.length,type:'n',ch,d,q:p[3],num,tol,unit:p[6],a:[p[4]+(p[6]?' '+p[6]:'')],e:p[7]});
+      }
+      return;
+    }
     if(p.length<6){errs.push(`Line ${i+1}: needs at least chapter | difficulty | question | correct | one wrong answer | explanation`);return;}
     const ch=parseInt(p[0],10), d=parseInt(p[1],10);
     if(ch!==3&&ch!==4){errs.push(`Line ${i+1}: chapter must be 3 or 4`);return;}
     if(!(d>=1&&d<=4)){errs.push(`Line ${i+1}: difficulty must be 1, 2, 3 or 4`);return;}
     const e=p[p.length-1], answers=p.slice(3,p.length-1).filter(Boolean);
     if(answers.length<2){errs.push(`Line ${i+1}: needs a correct answer and at least one wrong answer`);return;}
-    qs.push({id:qs.length,ch,d,q:p[2],a:answers.slice(0,4),e});
+    qs.push({id:qs.length,type:'mc',ch,d,q:p[2],a:answers.slice(0,4),e});
   });
   return {qs,errs};
 }
 let bankText=store.get(BANK_KEY)||DEFAULT_BANK;
 let BANK=parseBank(bankText).qs;
 if(!BANK.length){bankText=DEFAULT_BANK;BANK=parseBank(DEFAULT_BANK).qs;}
-function bankSummary(qs){const c3=qs.filter(q=>q.ch===3).length,c4=qs.filter(q=>q.ch===4).length;return `${qs.length} questions loaded: ${c3} from Chapter 3 and ${c4} from Chapter 4${store.get(BANK_KEY)?' (your edited bank)':''}.`;}
+function bankSummary(qs){const c=(t,ch)=>qs.filter(q=>q.type===t&&q.ch===ch).length;return `${qs.length} questions loaded: ${c('mc',3)+c('mc',4)} multiple choice, ${c('v',3)+c('v',4)} vocabulary and ${c('n',3)+c('n',4)} numerical (Chapter 3: ${qs.filter(q=>q.ch===3).length}, Chapter 4: ${qs.filter(q=>q.ch===4).length})${store.get(BANK_KEY)?'. You are using your edited bank':''}.`;}
 $('bankInfo').textContent=bankSummary(BANK);
 
 /* ---------------- sound ---------------- */
@@ -437,7 +687,7 @@ function newRun(){
   const dv=+document.querySelector('input[name=diff]:checked').value;
   G={name:$('pname').value.trim(),chapters:chv==='both'?[3,4]:[+chv],diff:DIFFS[dv],diffIdx:dv,land:0,
      hp:DIFFS[dv].hp,maxHp:DIFFS[dv].hp,score:0,used:new Set(),
-     stat:{3:{r:0,n:0},4:{r:0,n:0}},missed:[],outsmarted:0,poisoned:0,fightsWon:0,itemsGained:0,itemsLost:0,scrolls:0,
+     stat:{3:{r:0,n:0},4:{r:0,n:0}},rep:{mc:{3:{r:0,n:0},4:{r:0,n:0}},v:{3:{r:0,n:0},4:{r:0,n:0}},n:{3:{r:0,n:0},4:{r:0,n:0}}},missed:[],outsmarted:0,poisoned:0,fightsWon:0,itemsGained:0,itemsLost:0,scrolls:0,
      start:performance.now(),won:false,lastCh:4};
 }
 
@@ -562,12 +812,19 @@ function burst(x,y,color,n=14){for(let i=0;i<n;i++){const a=Math.random()*TAU,s=
 function floatText(x,y,txt,color){floaters.push({x,y,txt,color,life:1.2});}
 
 /* ---------------- question picking ---------------- */
-function pickQuestion(minD,maxD){
+function pickType(boost){
+  const up=(G.diff.qUp?0.1:0)+(boost||0);
+  const w={mc:Math.max(.2,.6-2*up),v:.2+up,n:.2+up}, r=Math.random()*(w.mc+w.v+w.n);
+  return r<w.mc?'mc':r<w.mc+w.v?'v':'n';
+}
+function pickQuestion(minD,maxD,boost){
+  const type=pickType(boost);
   let pool=BANK.filter(q=>G.chapters.includes(q.ch));
   if(!pool.length)pool=BANK;
   let unused=pool.filter(q=>!G.used.has(q.id));
   if(!unused.length){pool.forEach(q=>G.used.delete(q.id));unused=pool;toast('You have seen every question. The bank has been reshuffled.');}
   let cand=unused;
+  const ct=cand.filter(q=>q.type===type); if(ct.length)cand=ct;
   if(G.chapters.length>1){ // alternate chapters so both get equal time
     const want=G.lastCh===3?4:3; const c2=cand.filter(q=>q.ch===want); if(c2.length)cand=c2;
   }
@@ -578,8 +835,9 @@ function pickQuestion(minD,maxD){
 /* ---------------- question UI ---------------- */
 let Q=null;
 function askQuestion(opts,cb){
-  const q=pickQuestion(opts.min,opts.max);
-  const choices=shuffle(q.a.map((t,i)=>({t,ok:i===0})));
+  if(mode==='report'){setTimeout(()=>askQuestion(opts,cb),300);return;}
+  const q=pickQuestion(opts.min,opts.max,opts.boost);
+  const choices=q.type==='mc'?shuffle(q.a.map((t,i)=>({t,ok:i===0}))):[];
   Q={q,choices,cb,answered:false,opened:performance.now(),prevMode:mode};
   mode='question';
   $('qTitle').textContent=opts.title;
@@ -587,8 +845,18 @@ function askQuestion(opts,cb){
   const b=$('qBadge');b.textContent=q.ch===3?'Chapter 3':'Chapter 4';b.className='badge '+(q.ch===3?'c3':'c4');
   $('qStars').textContent='★'.repeat(q.d)+'☆'.repeat(Math.max(0,3-q.d));
   $('qStars').setAttribute('aria-label',`Difficulty ${q.d}`);
-  $('qText').textContent=q.q;
+  $('qText').textContent=q.type==='v'?'Type the key term that matches this definition:':q.q;
   const box=$('qOpts');box.innerHTML='';
+  if(q.type!=='mc'){
+    if(q.type==='v'){const d=document.createElement('div');d.className='defn';d.textContent=q.q;box.appendChild(d);
+      const hint=document.createElement('div');hint.className='note';const w=q.ans[0];
+      hint.textContent=(G.diff.qUp?'':`Starts with "${w[0].toUpperCase()}". `)+`${w.split(/\s+/).map(x=>x.replace(/[^A-Za-z]/g,'').length).join(' + ')} letters`+(/\s/.test(w)?` (${w.split(/\s+/).length} words)`:'')+'. Spelling counts; capitals don\'t.';box.appendChild(hint);}
+    const row=document.createElement('form');row.className='typed';row.autocomplete='off';
+    row.innerHTML=`<input type="text" id="qInput" spellcheck="false" autocapitalize="off" autocomplete="off" ${q.type==='n'?'inputmode="decimal" placeholder="Type a number"':'placeholder="Type your answer"'}><span class="unit"></span><button class="btn" type="submit">Check (Enter)</button>`;
+    row.querySelector('.unit').textContent=q.type==='n'?(q.unit||''):'';
+    row.addEventListener('submit',ev=>{ev.preventDefault();answerTyped();});
+    box.appendChild(row);
+  }
   choices.forEach((c,i)=>{
     const btn=document.createElement('button');btn.type='button';btn.className='opt';
     btn.innerHTML=`<span class="k">${i+1}</span><span></span>`;btn.lastChild.textContent=c.t;
@@ -596,21 +864,40 @@ function askQuestion(opts,cb){
   });
   hide('qFeedback');$('qFeedback').hidden=true;hide('qContRow');
   show('qBox');sfx.caught();
-  setTimeout(()=>{if(Q&&!Q.answered){const f=box.querySelector('button');f&&f.focus({preventScroll:true});}},50);
+  const inp=$('qInput');if(inp){inp.disabled=true;setTimeout(()=>{if(Q&&!Q.answered){inp.disabled=false;inp.value='';inp.focus({preventScroll:true});}},360);}
+  else setTimeout(()=>{if(Q&&!Q.answered){const f=box.querySelector('button');f&&f.focus({preventScroll:true});}},50);
+}
+function record(q,ok,typed){
+  G.stat[q.ch].n++;G.rep[q.type][q.ch].n++;
+  if(ok){G.stat[q.ch].r++;G.rep[q.type][q.ch].r++;G.score+=(q.type==='mc'?50:75)*q.d;sfx.right();}
+  else{sfx.wrong();G.missed.push({q:q.type==='v'?'Definition: '+q.q:q.q,a:q.a[0],e:q.e,ch:q.ch,type:q.type,typed});}
+}
+function showFeedback(ok,q,typed){
+  const fb=$('qFeedback');fb.hidden=false;fb.className='feedback '+(ok?'ok':'no');
+  fb.innerHTML=`<b>${ok?'Correct!':'Not quite.'}</b> `;
+  if(!ok){const s=document.createElement('span');s.textContent=(typed!=null?`You typed "${typed||'(nothing)'}". `:'')+`The answer is: ${q.a[0]}. `;fb.appendChild(s);}
+  const ex=document.createElement('span');ex.textContent=q.e;fb.appendChild(ex);
+  show('qContRow');Q.answeredAt=performance.now();
+  setTimeout(()=>$('qCont').focus({preventScroll:true}),30);
+}
+function answerTyped(){
+  if(!Q||Q.answered||performance.now()-Q.opened<350)return;
+  const inp=$('qInput'), raw=inp.value.trim(), q=Q.q;
+  if(!raw){inp.focus();return;}
+  let ok;
+  if(q.type==='v')ok=vocabMatch(raw,q.ans);
+  else{const v=parseNum(raw);ok=v!==null&&Math.abs(v-q.num)<=q.tol+1e-9;}
+  Q.answered=true;Q.ok=ok;inp.disabled=true;inp.classList.add(ok?'right':'wrong');
+  $('qOpts').querySelector('button[type=submit]').disabled=true;
+  record(q,ok,raw);showFeedback(ok,q,raw);
 }
 function answer(i){
-  if(!Q||Q.answered||performance.now()-Q.opened<350)return;
+  if(!Q||Q.answered||performance.now()-Q.opened<350||!Q.choices[i])return;
   Q.answered=true;
   const c=Q.choices[i], ok=c.ok, q=Q.q;Q.ok=ok;
   const btns=[...$('qOpts').children];
   btns.forEach((b,j)=>{b.disabled=true;if(Q.choices[j].ok)b.classList.add('right');else if(j===i)b.classList.add('wrong');});
-  G.stat[q.ch].n++; if(ok){G.stat[q.ch].r++;G.score+=50*q.d;sfx.right();}else{sfx.wrong();G.missed.push({q:q.q,a:q.a[0],e:q.e,ch:q.ch});}
-  const fb=$('qFeedback');fb.hidden=false;fb.className='feedback '+(ok?'ok':'no');
-  fb.innerHTML=`<b>${ok?'Correct!':'Not quite.'}</b> `;
-  if(!ok){const s=document.createElement('span');s.textContent=`The answer is: ${q.a[0]}. `;fb.appendChild(s);}
-  const ex=document.createElement('span');ex.textContent=q.e;fb.appendChild(ex);
-  show('qContRow');Q.answeredAt=performance.now();
-  setTimeout(()=>$('qCont').focus({preventScroll:true}),30);
+  record(q,ok,null);showFeedback(ok,q,null);
 }
 function continueQuestion(){
   if(!Q||!Q.answered||performance.now()-Q.answeredAt<300)return;
@@ -644,7 +931,7 @@ function encounterItem(it){
   });
 }
 function encounterScroll(s){
-  askQuestion({...qRange(2,3),title:'A Knowledge Scroll!',stake:'Answer correctly to claim it. Answer wrongly and the wind carries it away.'},ok=>{
+  askQuestion({...qRange(2,3),boost:.1,title:'A Knowledge Scroll!',stake:'Answer correctly to claim it. Answer wrongly and the wind carries it away.'},ok=>{
     if(ok){s.got=true;G.scrolls++;G.score+=100;sfx.pick();burst(s.x,s.y,'#ffd36b',22);
       const left=L.scrolls.filter(x=>!x.got).length;
       if(left===0){L.gate.open=true;sfx.gate();toast('All 3 scrolls found! The gate is open. Follow the arrow.','#ffd36b');}
@@ -723,7 +1010,7 @@ function strike(){
 function bossQuestion(){
   if(!F||F.done)return;
   F.phase='question';
-  askQuestion({...qRange(2,3),title:'The Ember Dragon demands an answer!',stake:`Correct: the smoke shield drops for ${G.diff.window} seconds so you can attack. Wrong: the dragon breathes fire.`},ok=>{
+  askQuestion({...qRange(2,3),boost:.1,title:'The Ember Dragon demands an answer!',stake:`Correct: the smoke shield drops for ${G.diff.window} seconds so you can attack. Wrong: the dragon breathes fire.`},ok=>{
     if(!F)return;
     if(ok){F.phase='window';F.window=G.diff.window;F.eState='approach';log(`Correct! The shield is down for ${G.diff.window} seconds. Move in and strike, and step back when it raises its claws!`);}
     else{F.phase='fire';F.fire=1.3;sfx.fire();log('Wrong answer! The dragon takes a deep breath...');
@@ -757,17 +1044,16 @@ $('fCont').onclick=endFight;
 
 /* ---------------- end ---------------- */
 function pct(r,n){return n?Math.round(100*r/n)+'%':'–';}
-function endGame(won,cause){
+function endGame(won,cause,quit){
   mode='over';hide('pauseBox');hide('fightBox');hide('qBox');
   const s=G.stat, R=s[3].r+s[4].r, N=s[3].n+s[4].n;
   const mins=Math.max(1,Math.round((performance.now()-G.start)/60000));
   $('eEyebrow').textContent=(G.name?G.name+' · ':'')+new Date().toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
-  $('eTitle').textContent=won?'Quest complete!':`Defeated in ${LANDS[G.land].name}`+(cause?` (${cause})`:'');
+  $('eTitle').textContent=won?'Quest complete!':quit?`Quest ended in ${LANDS[G.land].name}`:`Defeated in ${LANDS[G.land].name}`+(cause?` (${cause})`:'');
   $('eSub').textContent=won?`You crossed all three lands and beat the Ember Dragon on ${G.diff.name} difficulty.`:`You reached land ${G.land+1} of ${LANDS.length} on ${G.diff.name} difficulty. Review the questions below and try again.`;
-  const cells=[['Score',G.score],['Accuracy',`${pct(R,N)}`],['Questions right',`${R} / ${N}`]];
-  if(G.chapters.includes(3))cells.push(['Chapter 3',`${s[3].r}/${s[3].n} · ${pct(s[3].r,s[3].n)}`]);
-  if(G.chapters.includes(4))cells.push(['Chapter 4',`${s[4].r}/${s[4].n} · ${pct(s[4].r,s[4].n)}`]);
+  const cells=[['Score',G.score]];
   cells.push(['Creatures outsmarted',G.outsmarted],['Fights won',G.fightsWon],['Supplies used / left behind',`${G.itemsGained} / ${G.itemsLost}`],['Poisoned supplies',G.poisoned],['Scrolls claimed',G.scrolls],['Time played',`${mins} min`]);
+  fillReport($('eReport'));
   $('eStats').innerHTML='';
   cells.forEach(([l,v])=>{const d=document.createElement('div');d.innerHTML='<span class="v"></span><span class="l"></span>';d.firstChild.textContent=v;d.lastChild.textContent=l;$('eStats').appendChild(d);});
   const ul=$('eReview');ul.innerHTML='';
@@ -775,10 +1061,32 @@ function endGame(won,cause){
   G.missed.forEach(m=>{if(seen.has(m.q))return;seen.add(m.q);const li=document.createElement('li');
     li.innerHTML='<span class="badge"></span> <span class="qq"></span><br><span class="ans"></span> <span class="ex"></span>';
     li.children[0].textContent='Ch '+m.ch;li.children[0].className='badge '+(m.ch===3?'c3':'c4');
-    li.querySelector('.qq').textContent=m.q;li.querySelector('.ans').textContent='Answer: '+m.a+'.';li.querySelector('.ex').textContent=m.e;ul.appendChild(li);});
+    li.querySelector('.qq').textContent=m.q;li.querySelector('.ans').textContent=(m.typed?`You typed "${m.typed}". `:'')+'Answer: '+m.a+'.';li.querySelector('.ex').textContent=m.e;ul.appendChild(li);});
   $('eReviewWrap').hidden=!G.missed.length;
   show('endBox');setTimeout(()=>$('againBtn').focus({preventScroll:true}),50);
 }
+function fillReport(el){
+  const rp=G.rep, rows=[['mc','Multiple choice'],['v','Vocabulary'],['n','Numerical']], chs=G.chapters;
+  const cell=o=>o.n?`${o.r} / ${o.n} <small>(${pct(o.r,o.n)})</small>`:'<small>none yet</small>';
+  const sum=(a,b)=>({r:a.r+b.r,n:a.n+b.n});
+  let h='<table class="rc"><thead><tr><th>Question type</th>'+chs.map(c=>`<th>Chapter ${c}</th>`).join('')+'<th>Total</th></tr></thead><tbody>';
+  let tot={3:{r:0,n:0},4:{r:0,n:0}};
+  rows.forEach(([k,l])=>{const t=chs.reduce((a,c)=>sum(a,rp[k][c]),{r:0,n:0});chs.forEach(c=>tot[c]=sum(tot[c],rp[k][c]));
+    h+=`<tr><th scope="row">${l}</th>`+chs.map(c=>`<td>${cell(rp[k][c])}</td>`).join('')+`<td><b>${cell(t)}</b></td></tr>`;});
+  const all=chs.reduce((a,c)=>sum(a,tot[c]),{r:0,n:0});
+  h+=`<tr class="tot"><th scope="row">All questions</th>`+chs.map(c=>`<td>${cell(tot[c])}</td>`).join('')+`<td><b>${cell(all)}</b></td></tr></tbody></table>`;
+  el.innerHTML=h;
+}
+let repPrev=null;
+function toggleReport(){
+  if(mode==='report'){hide('repBox');mode=repPrev;repPrev=null;const i=$('qInput');if(mode==='question'&&i&&!i.disabled)i.focus({preventScroll:true});return;}
+  if(!G||['menu','over'].includes(mode))return;
+  repPrev=mode;mode='report';for(const k in keys)keys[k]=false;hold.l=hold.r=false;
+  $('repWho').textContent=(G.name?G.name+' · ':'')+`${G.diff.name} difficulty · ${LANDS[G.land].name} · score ${G.score}`;
+  fillReport($('repTable'));show('repBox');$('repClose').focus({preventScroll:true});
+}
+$('repClose').onclick=toggleReport;
+$('repBtn').onclick=()=>{if(mode!=='report')toggleReport();};
 $('againBtn').onclick=()=>{hide('endBox');show('menu');mode='menu';L=genLand(0);P.x=L.start.x;P.y=L.start.y;};
 
 /* ---------------- menu & bank ---------------- */
@@ -802,7 +1110,7 @@ $('bankSave').onclick=()=>{
 };
 $('bankReset').onclick=()=>{store.del(BANK_KEY);bankText=DEFAULT_BANK;BANK=parseBank(DEFAULT_BANK).qs;$('bankText').value=bankText;$('bankErr').textContent='';$('bankStatus').textContent='Original questions restored. '+bankSummary(BANK);$('bankInfo').textContent=bankSummary(BANK);};
 $('resumeBtn').onclick=()=>togglePause();
-$('quitBtn').onclick=()=>{hide('pauseBox');endGame(false);};
+$('quitBtn').onclick=()=>{hide('pauseBox');endGame(false,null,true);};
 function togglePause(){if(mode==='play'){mode='pause';show('pauseBox');$('resumeBtn').focus({preventScroll:true});}else if(mode==='pause'){mode='play';hide('pauseBox');}}
 
 /* ---------------- input ---------------- */
@@ -812,9 +1120,11 @@ window.addEventListener('keydown',e=>{
   if(tag==='TEXTAREA'||(tag==='INPUT'&&e.target.type==='text'))return;
   if(MOVE[e.code]){keys[MOVE[e.code]]=true;if(mode!=='menu')e.preventDefault();}
   if(e.repeat)return;
+  if(e.code==='KeyR'&&G&&!['menu','over'].includes(mode)){e.preventDefault();toggleReport();return;}
+  if(mode==='report'){if(e.code==='Escape'||e.code==='Enter'||e.code==='Space'){e.preventDefault();toggleReport();}return;}
   if(mode==='question'&&Q){
     const n=parseInt(e.key,10);
-    if(!Q.answered&&n>=1&&n<=Q.choices.length){e.preventDefault();answer(n-1);}
+    if(!Q.answered&&Q.choices.length&&n>=1&&n<=Q.choices.length){e.preventDefault();answer(n-1);}
     else if(Q.answered&&(e.code==='Enter'||e.code==='Space'||e.code==='NumpadEnter')){e.preventDefault();continueQuestion();}
     else if(e.code==='Space'||e.code==='Enter')e.preventDefault();
     return;

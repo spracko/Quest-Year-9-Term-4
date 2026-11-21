@@ -35,6 +35,8 @@ Also change the `<title>…</title>` line on the first lines of the file. It is 
 
 You never need to touch the drawing, movement or fight code.
 
+**Don't add HTML `<form>` elements.** Some viewers (including shared Claude links) block forms, which once stopped the typed-answer Check button from working. The game uses a plain button and an Enter-key listener instead. Keep it that way if you change anything.
+
 ---
 
 ## 3. Step-by-step tailoring checklist

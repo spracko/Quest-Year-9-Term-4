@@ -904,10 +904,12 @@ function askQuestion(opts,cb){
     if(q.type==='v'){const d=document.createElement('div');d.className='defn';d.textContent=q.q;box.appendChild(d);
       const hint=document.createElement('div');hint.className='note';const w=q.ans[0];
       hint.textContent=(G.diff.qUp?'':`Starts with "${w[0].toUpperCase()}". `)+`${w.split(/\s+/).map(x=>x.replace(/[^A-Za-z]/g,'').length).join(' + ')} letters`+(/\s/.test(w)?` (${w.split(/\s+/).length} words)`:'')+'. Spelling counts; capitals don\'t.';box.appendChild(hint);}
-    const row=document.createElement('form');row.className='typed';row.autocomplete='off';
-    row.innerHTML=`<input type="text" id="qInput" spellcheck="false" autocapitalize="off" autocomplete="off" ${q.type==='n'?'inputmode="decimal" placeholder="Type a number"':'placeholder="Type your answer"'}><span class="unit"></span><button class="btn" type="submit">Check (Enter)</button>`;
+    const row=document.createElement('div');row.className='typed';
+    row.innerHTML=`<input type="text" id="qInput" spellcheck="false" autocapitalize="off" autocomplete="off" ${q.type==='n'?'inputmode="decimal" placeholder="Type a number"':'placeholder="Type your answer"'}><span class="unit"></span><button class="btn qCheck" type="button">Check (Enter)</button>`;
     row.querySelector('.unit').textContent=q.type==='n'?(q.unit||''):'';
-    row.addEventListener('submit',ev=>{ev.preventDefault();answerTyped();});
+    /* No <form> here: forms are blocked in some sandboxed viewers, so the button and Enter key call answerTyped directly. */
+    row.querySelector('.qCheck').addEventListener('click',ev=>{ev.preventDefault();answerTyped();});
+    row.querySelector('input').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.code==='NumpadEnter'){ev.preventDefault();ev.stopPropagation();answerTyped();}});
     box.appendChild(row);
   }
   choices.forEach((c,i)=>{
@@ -941,7 +943,7 @@ function answerTyped(){
   if(q.type==='v')ok=vocabMatch(raw,q.ans);
   else{const v=parseNum(raw);ok=v!==null&&Math.abs(v-q.num)<=q.tol+1e-9;}
   Q.answered=true;Q.ok=ok;inp.disabled=true;inp.classList.add(ok?'right':'wrong');
-  $('qOpts').querySelector('button[type=submit]').disabled=true;
+  $('qOpts').querySelector('.qCheck').disabled=true;
   record(q,ok,raw);showFeedback(ok,q,raw);
 }
 function answer(i){
